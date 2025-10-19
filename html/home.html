@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quản lý kho phụ tùng</title>
+
+    <!-- Thư viện Material UI cơ bản -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+      rel="stylesheet"
+    />
+    <link href="../css/style.css" rel="stylesheet" />
+  </head>
+  <script>
+    /* ===== Đồng bộ giao diện từ localStorage ===== */
+    (function applyDashboardTheme() {
+      const logo = localStorage.getItem("sidebarLogo");
+      const color = localStorage.getItem("themeColor") || "#1e88e5";
+
+      // Áp dụng logo nếu có
+      const logoImg = document.getElementById("sidebarLogo");
+      if (logo && logoImg) {
+        logoImg.src = logo;
+      }
+
+      // Áp dụng màu theme (áp dụng cho tất cả phần tử sử dụng --primary)
+      document.documentElement.style.setProperty("--primary", color);
+    })();
+  </script>
+  <body>
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="sidebar">
+      <div class="sidebar-header d-flex align-items-center mb-4">
+        <div class="sidebar-logo">
+          <img
+            id="sidebarLogo"
+            src="https://cdn-icons-png.flaticon.com/512/679/679922.png"
+            alt="Logo"
+          />
+        </div>
+        <h3 class="sidebar-title m-0 ms-2">Kho phụ tùng</h3>
+      </div>
+
+      <ul>
+        <li>
+          <a href="index.html"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        </li>
+        <li>
+          <a href="home.html" class="active"
+            ><i class="bi bi-box"></i> Quản lý kho</a
+          >
+        </li>
+        <li>
+          <a href="stats.html"><i class="bi bi-bar-chart"></i> Thống kê</a>
+        </li>
+        <li>
+          <a href="payment.html"><i class="bi bi-cash-coin"></i> Thanh toán</a>
+        </li>
+        <li>
+          <a href="settings.html"><i class="bi bi-gear"></i> Cài đặt</a>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main">
+      <div class="dashboard-header mb-4">
+        <h2><i class="bi bi-box me-2"></i> Quản lý kho phụ tùng</h2>
+        <div class="text-muted small">Cập nhật: tháng 10/2025</div>
+      </div>
+
+      <!-- 🔍 Bộ lọc -->
+      <div class="card p-4 mb-4">
+        <h6 class="fw-semibold text-primary mb-3">
+          <i class="bi bi-funnel"></i> Bộ lọc tìm kiếm
+        </h6>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Tên sản phẩm</label>
+            <input
+              id="q"
+              class="form-control"
+              placeholder="Nhập tên sản phẩm..."
+            />
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Hãng xe</label>
+            <select id="vehicle" class="form-select">
+              <option value="">Tất cả</option>
+              <option value="Honda">Honda</option>
+              <option value="Yamaha">Yamaha</option>
+              <option value="SYM">SYM</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Dòng xe</label>
+            <select id="model" class="form-select">
+              <option value="">Tất cả</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Loại phụ tùng</label>
+            <select id="category" class="form-select">
+              <option value="">Tất cả</option>
+              <option value="Đèn">Đèn</option>
+              <option value="Phanh">Phanh</option>
+              <option value="Phuộc">Phuộc</option>
+              <option value="Nhông sên dĩa">Nhông sên dĩa</option>
+              <option value="Lọc gió">Lọc gió</option>
+              <option value="Gương chiếu hậu">Gương chiếu hậu</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label">Trạng thái</label>
+            <select id="status" class="form-select">
+              <option value="">Tất cả</option>
+              <option value="Còn hàng">Còn hàng</option>
+              <option value="Hết hàng">Hết hàng</option>
+            </select>
+          </div>
+          <div class="col-md-1 d-flex align-items-end">
+            <button id="btnReset" class="btn btn-outline-primary w-100">
+              <i class="bi bi-arrow-clockwise"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ⚙️ Nút thao tác -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <button id="btnAdd" class="btn btn-primary">
+          <i class="bi bi-plus-circle me-1"></i> Thêm sản phẩm
+        </button>
+        <button id="btnDeleteSelected" class="btn btn-outline-danger">
+          <i class="bi bi-trash me-1"></i> Xóa sản phẩm đã chọn
+        </button>
+      </div>
+
+      <!-- 📦 Bảng dữ liệu -->
+      <div class="card shadow-sm border-0">
+        <div class="card-body table-responsive">
+          <table class="table table-hover align-middle text-center">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="selectAll" /></th>
+                <th>#</th>
+                <th>Hình ảnh</th>
+                <th>Tên & Mô tả</th>
+                <th>Hãng xe</th>
+                <th>Dòng xe</th>
+                <th>Loại</th>
+                <th>Giá</th>
+                <th>Tồn kho</th>
+                <th>Ngày nhập</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <tr>
+                <td colspan="12" class="text-center text-muted py-4">
+                  <i class="bi bi-hourglass-split me-2"></i>Đang tải dữ liệu...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 📄 Phân trang -->
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <div class="text-secondary small">
+          <span id="totalItems">0</span> sản phẩm
+        </div>
+        <div class="btn-group">
+          <button id="prev" class="btn btn-outline-primary btn-sm">
+            Trước
+          </button>
+          <span id="pageInfo" class="btn btn-light btn-sm disabled"
+            >Trang 1</span
+          >
+          <button id="next" class="btn btn-outline-primary btn-sm">Sau</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- 🧾 Modal thêm/sửa -->
+    <div class="modal fade" id="productModal" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalTitle">Thêm sản phẩm</h5>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="productForm" class="row g-3">
+              <input type="hidden" id="productId" />
+              <div class="col-md-6">
+                <label class="form-label">Tên sản phẩm</label>
+                <input id="name" class="form-control" required />
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Hãng xe</label>
+                <select id="vehicleField" class="form-select" required>
+                  <option value="">Chọn hãng</option>
+                  <option>Honda</option>
+                  <option>Yamaha</option>
+                  <option>SYM</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Loại phụ tùng</label>
+                <select id="categoryField" class="form-select" required>
+                  <option value="">Chọn loại</option>
+                  <option>Đèn</option>
+                  <option>Phanh</option>
+                  <option>Phuộc</option>
+                  <option>Nhông sên dĩa</option>
+                  <option>Lọc gió</option>
+                  <option>Gương chiếu hậu</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Giá (₫)</label>
+                <input
+                  id="priceField"
+                  type="number"
+                  class="form-control"
+                  value="100000"
+                  min="0"
+                />
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Số lượng</label>
+                <input
+                  id="quantityField"
+                  type="number"
+                  class="form-control"
+                  value="10"
+                  min="0"
+                />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Dòng xe</label>
+                <input
+                  id="modelField"
+                  class="form-control"
+                  placeholder="Wave Alpha, NVX..."
+                />
+              </div>
+              <div class="col-md-12">
+                <label class="form-label">Mô tả</label>
+                <textarea id="descriptionField" rows="2" class="form-control">
+Sản phẩm chất lượng, chính hãng.</textarea
+                >
+              </div>
+              <div class="col-md-12">
+                <label class="form-label">Ảnh (URL)</label>
+                <input
+                  id="imageField"
+                  class="form-control"
+                  value="https://picsum.photos/seed/new/400/300"
+                />
+              </div>
+            </form>
+            <div
+              id="modalError"
+              class="text-danger mt-2 small fw-semibold"
+              style="display: none"
+            ></div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Hủy
+            </button>
+            <button type="submit" form="productForm" class="btn btn-primary">
+              Lưu
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🔔 Toast hiển thị -->
+    <div
+      class="position-fixed top-0 start-50 translate-middle-x p-3"
+      style="z-index: 1100"
+    >
+      <div id="toastContainer" class="toast-container text-center"></div>
+    </div>
+
+    <!-- Script -->
+    <!-- SweetAlert2 (bắt buộc cho Swal.fire) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../js/home.js"></script>
+  </body>
+</html>
