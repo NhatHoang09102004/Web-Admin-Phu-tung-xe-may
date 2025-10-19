@@ -71,27 +71,20 @@
         color: var(--primary);
       }
 
-      /* Responsive cho điện thoại */
-      @media (max-width: 768px) {
-        .sidebar {
-          position: relative;
-          width: 100%;
-          height: auto;
-        }
-
-        .main {
-          margin-left: 0;
-          padding: 15px;
-        }
-
-        .equal-section {
-          height: auto;
-        }
-      }
+     
+      
     </style>
   </head>
+<nav class="mobile-bottom-nav d-lg-none">
+  <a href="./index.html"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+  <a href="./home.html"><i class="bi bi-box"></i><span>Kho</span></a>
+  <a href="./stats.html"><i class="bi bi-bar-chart"></i><span>Thống kê</span></a>
+  <a href="./payment.html"><i class="bi bi-cash-coin"></i><span>Thanh toán</span></a>
+  <a href="./settings.html"><i class="bi bi-gear"></i><span>Cài đặt</span></a>
+</nav>
+<!-- Overlay để click ra ngoài là đóng -->
+<div id="sidebarOverlay" class="sidebar-overlay d-lg-none"></div>
 
-  <body>
     <!-- ===== SIDEBAR ===== -->
     <aside class="sidebar">
       <div class="sidebar-header d-flex align-items-center mb-3">

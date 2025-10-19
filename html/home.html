@@ -40,7 +40,19 @@
       document.documentElement.style.setProperty("--primary", color);
     })();
   </script>
+  <nav class="mobile-bottom-nav d-lg-none">
+  <a href="./index.html"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
+  <a href="./home.html"><i class="bi bi-box"></i><span>Kho</span></a>
+  <a href="./stats.html"><i class="bi bi-bar-chart"></i><span>Thống kê</span></a>
+  <a href="./payment.html"><i class="bi bi-cash-coin"></i><span>Thanh toán</span></a>
+  <a href="./settings.html"><i class="bi bi-gear"></i><span>Cài đặt</span></a>
+</nav>
   <body>
+    <!-- Trong .dashboard-header -->
+    
+    <!-- Overlay để click ra ngoài là đóng -->
+    <div id="sidebarOverlay" class="sidebar-overlay d-lg-none"></div>
+
     <!-- ===== SIDEBAR ===== -->
     <aside class="sidebar">
       <div class="sidebar-header d-flex align-items-center mb-4">

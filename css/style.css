@@ -407,3 +407,49 @@ body {
   margin-left: 260px;
   padding: 20px;
 }
+/* ===== Sidebar Mobile ===== */
+@media (max-width: 992px) {
+  .sidebar {
+    position: fixed;
+    top: 0; bottom: 0; left: -260px; /* ẩn mặc định */
+    width: 260px;
+    background: #fff; /* hoặc giữ nền hiện tại của bạn */
+    z-index: 1040;
+    transition: left .25s ease;
+    box-shadow: 0 0 18px rgba(0,0,0,.12);
+  }
+  .sidebar.open { left: 0; }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.35);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .2s ease;
+    z-index: 1035;
+  }
+  .sidebar-overlay.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .main {
+    margin-left: 0 !important;        /* ngăn đẩy lệch nội dung */
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+
+.mobile-bottom-nav{
+  position: fixed; left:0; right:0; bottom:0;
+  display:flex; justify-content:space-between;
+  background:#fff; border-top:1px solid #e9ecef; z-index:1030;
+}
+.mobile-bottom-nav a{
+  flex:1; text-align:center; padding:8px 4px; color:#495057; text-decoration:none;
+  font-size:12px; display:flex; flex-direction:column; align-items:center; gap:4px;
+}
+.mobile-bottom-nav a i{ font-size:18px; color: var(--primary,#1976D2); }
+body{ padding-bottom:60px; } /* chừa chỗ cho nav đáy */

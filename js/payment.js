@@ -669,3 +669,38 @@ document.head.appendChild(html2canvasScript);
 // ======= KHỞI CHẠY =======
 loadProducts();
 loadCart();
+
+(function mobileSidebarToggle(){
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const btn = document.getElementById('btnToggleSidebar');
+  if (!sidebar || !btn || !overlay) return;
+
+  const open = () => {
+    sidebar.classList.add('open');
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden'; // khóa scroll nền
+  };
+  const close = () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+  };
+
+  btn.addEventListener('click', () => {
+    sidebar.classList.contains('open') ? close() : open();
+  });
+  overlay.addEventListener('click', close);
+
+  // Đóng khi click 1 mục menu
+  sidebar.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      if (window.innerWidth < 992) close();
+    });
+  });
+
+  // Đóng bằng phím ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebar.classList.contains('open')) close();
+  });
+})();
