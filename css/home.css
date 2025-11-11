@@ -87,6 +87,7 @@ label.form-label {
 /* Tên sản phẩm (nếu muốn rút gọn 1 dòng) */
 .table td strong {
   display: -webkit-box;
+  line-clamp: 1;    
   -webkit-line-clamp: 1;       /* Giới hạn 1 dòng */
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -96,6 +97,7 @@ label.form-label {
 }
 .table td small.text-muted {
   display: -webkit-box;
+  line-clamp: 2;    
   -webkit-line-clamp: 2;       /* Giới hạn 2 dòng */
   -webkit-box-orient: vertical;
   overflow: hidden;

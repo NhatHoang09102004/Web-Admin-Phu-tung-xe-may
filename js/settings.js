@@ -112,7 +112,7 @@ document
     setTimeout(async () => {
       const api =
         JSON.parse(localStorage.getItem("settings") || "{}").apiUrl ||
-        "http://localhost:3000/api";
+        "https://8734759df81c.ngrok-free.app/api";
       const tbody = document.getElementById("lowStockBody");
       tbody.innerHTML = `<tr><td colspan="9" class="text-muted py-3"><i class="bi bi-hourglass-split me-1"></i> Đang tải dữ liệu...</td></tr>`;
 

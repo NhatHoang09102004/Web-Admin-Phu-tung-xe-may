@@ -1,4 +1,6 @@
-const API_URL = "http://localhost:3000/api/products";
+// frontend script (updated to use your API)
+const API_BASE = "https://motorparts-api.onrender.com/api";
+const PRODUCTS_API = `${API_BASE}/products`;
 let currentPage = 1;
 const limit = 10;
 
@@ -12,6 +14,8 @@ const modelOptions = {
 // ====== Hiển thị Toast ======
 function showToast(message, type = "info") {
   const container = document.getElementById("toastContainer");
+  if (!container) return alert(message);
+
   const colors = {
     success: "bg-success text-white",
     danger: "bg-danger text-white",
@@ -73,15 +77,22 @@ vehicleSelect.addEventListener("change", () => {
 async function fetchProducts(page = 1) {
   const params = new URLSearchParams({ page, limit });
   Object.entries(filters).forEach(([key, el]) => {
-    if (el.value.trim()) params.append(key, el.value.trim());
+    if (el.value && el.value.toString().trim())
+      params.append(key, el.value.toString().trim());
   });
 
   try {
-    const res = await fetch(`${API_URL}?${params.toString()}`);
+    const res = await fetch(`${PRODUCTS_API}?${params.toString()}`);
+    if (!res.ok) throw new Error("Fetch failed");
     const result = await res.json();
-    renderTable(result.data);
-    updatePagination(result.page, result.totalPages, result.totalItems);
-  } catch {
+    renderTable(result.data || []);
+    updatePagination(
+      result.page || page,
+      result.totalPages || 1,
+      result.totalItems || 0
+    );
+  } catch (err) {
+    console.error(err);
     showToast("❌ Lỗi tải danh sách sản phẩm.", "danger");
   }
 }
@@ -99,20 +110,30 @@ function renderTable(products) {
       (p, i) => `
       <tr data-id="${p._id}">
         <td><input type="checkbox" class="select-item" /></td>
-        <td>${i + 1}</td>
-        <td><img src="${p.image}" class="rounded" width="70" height="55"></td>
-        <td><strong>${p.name}</strong><br><small class="text-muted">${
+        <td>${(currentPage - 1) * limit + (i + 1)}</td>
+        <td><img src="${
+          p.image || "https://via.placeholder.com/70x55"
+        }" class="rounded" width="70" height="55" alt=""></td>
+        <td><strong>${escapeHtml(
+          p.name
+        )}</strong><br><small class="text-muted">${escapeHtml(
         p.description || ""
-      }</small></td>
-        <td>${p.vehicle}</td>
-        <td>${p.model}</td>
-        <td>${p.category}</td>
-        <td>${p.price?.toLocaleString("vi-VN")} ₫</td>
-        <td>${p.quantity}</td>
-        <td>${new Date(p.createdAt).toLocaleDateString("vi-VN")}</td>
+      )}</small></td>
+        <td>${escapeHtml(p.vehicle || "")}</td>
+        <td>${escapeHtml(p.model || "")}</td>
+        <td>${escapeHtml(p.category || "")}</td>
+        <td>${
+          typeof p.price === "number"
+            ? p.price.toLocaleString("vi-VN") + " ₫"
+            : ""
+        }</td>
+        <td>${p.quantity ?? ""}</td>
+        <td>${
+          p.createdAt ? new Date(p.createdAt).toLocaleDateString("vi-VN") : ""
+        }</td>
         <td><span class="badge ${
           p.status === "Còn hàng" ? "bg-success" : "bg-secondary"
-        }">${p.status}</span></td>
+        }">${escapeHtml(p.status || "")}</span></td>
         <td>
           <button class="btn btn-sm btn-outline-info me-1 edit-btn" title="Chỉnh sửa"><i class="bi bi-pencil"></i></button>
           <button class="btn btn-sm btn-outline-danger delete-btn" title="Xóa"><i class="bi bi-trash"></i></button>
@@ -131,6 +152,15 @@ function updatePagination(page, totalPages, totalItems) {
   document.getElementById("prev").disabled = page <= 1;
   document.getElementById("next").disabled = page >= totalPages;
   currentPage = page;
+}
+
+// escape HTML simple helper
+function escapeHtml(s = "") {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 // ====== Bộ lọc tự động ======
@@ -196,7 +226,7 @@ form.addEventListener("submit", async (e) => {
   }
 
   const method = idField.value ? "PUT" : "POST";
-  const url = idField.value ? `${API_URL}/${idField.value}` : API_URL;
+  const url = idField.value ? `${PRODUCTS_API}/${idField.value}` : PRODUCTS_API;
 
   try {
     const res = await fetch(url, {
@@ -208,7 +238,7 @@ form.addEventListener("submit", async (e) => {
 
     if (res.ok) {
       modal.hide();
-      showToast(result.message, "success");
+      showToast(result.message || "Lưu thành công", "success");
       fetchProducts(currentPage);
     } else {
       modalError.textContent = result.error || "Không thể lưu sản phẩm.";
@@ -231,7 +261,7 @@ document.getElementById("tableBody").addEventListener("click", async (e) => {
   // --- CHỈNH SỬA ---
   if (btnEdit) {
     try {
-      const res = await fetch(`${API_URL}/${id}`);
+      const res = await fetch(`${PRODUCTS_API}/${id}`);
       const p = await res.json();
       if (!res.ok || !p._id)
         return showToast("❌ Không tìm thấy sản phẩm.", "danger");
@@ -251,7 +281,7 @@ document.getElementById("tableBody").addEventListener("click", async (e) => {
       row.querySelector("strong")?.innerText || "sản phẩm này";
     Swal.fire({
       title: "Bạn có chắc muốn xóa?",
-      html: `<b>${productName}</b> sẽ bị xóa khỏi hệ thống.`,
+      html: `<b>${escapeHtml(productName)}</b> sẽ bị xóa khỏi hệ thống.`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -263,7 +293,9 @@ document.getElementById("tableBody").addEventListener("click", async (e) => {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+          const res = await fetch(`${PRODUCTS_API}/${id}`, {
+            method: "DELETE",
+          });
           const data = await res.json();
           if (res.ok) {
             showToast(`🗑️ ${data.message || "Đã xóa sản phẩm."}`, "warning");
@@ -313,7 +345,7 @@ document
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          const res = await fetch(`${API_URL}/delete-multiple`, {
+          const res = await fetch(`${PRODUCTS_API}/delete-multiple`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ids }),
@@ -351,7 +383,7 @@ document
   .addEventListener("click", () => fetchProducts(currentPage + 1));
 
 // === KHỞI ĐỘNG ===
-fetchProducts();
+fetchProducts(1);
 
 (function mobileSidebarToggle() {
   const sidebar = document.querySelector(".sidebar");

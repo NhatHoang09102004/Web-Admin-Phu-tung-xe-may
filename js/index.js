@@ -7,9 +7,22 @@
   document.documentElement.style.setProperty("--primary", color);
 })();
 
-/* ================== Helpers ================== */
+/* ================== Helpers & API base ================== */
+// Mặc định trỏ tới API của bạn
+const DEFAULT_API = "https://motorparts-api.onrender.com/api";
+
+// Cho phép override bằng localStorage.settings.apiUrl nếu muốn
 const cfg = JSON.parse(localStorage.getItem("settings") || "{}");
-const API = cfg.apiUrl || "http://localhost:3000/api";
+const API = cfg.apiUrl || DEFAULT_API;
+
+// Nếu chưa có settings, khởi tạo sẵn API mặc định để dễ chỉnh trên localStorage
+(function ensureApiUrl() {
+  const s = JSON.parse(localStorage.getItem("settings") || "{}");
+  if (!s.apiUrl) {
+    s.apiUrl = DEFAULT_API;
+    localStorage.setItem("settings", JSON.stringify(s));
+  }
+})();
 
 function setText(id, val) {
   const el = document.getElementById(id);
@@ -18,6 +31,7 @@ function setText(id, val) {
 
 function showToast(msg, type = "info") {
   const container = document.getElementById("toastContainer");
+  if (!container) return alert(msg);
   const el = document.createElement("div");
   const color =
     type === "success"
@@ -62,9 +76,9 @@ const chart = new Chart(ctx, {
     datasets: [
       {
         label: "Doanh thu (₫)",
-        data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // sẽ cập nhật sau khi gọi API
+        data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         borderColor: colorPrimary,
-        backgroundColor: `${colorPrimary}1A`, // 10% alpha
+        backgroundColor: `${colorPrimary}1A`,
         borderWidth: 3,
         tension: 0.35,
         fill: true,
@@ -85,8 +99,8 @@ async function loadDashboard() {
   try {
     // /stats/overview -> { totalProducts, monthlyRevenue, topBrand, newCustomers, monthlyRevenueSeries }
     const res = await fetch(`${API}/stats/overview`);
+    if (!res.ok) throw new Error("Fetch overview failed");
     const data = await res.json();
-    if (!res.ok) throw new Error();
 
     setText("totalProducts", (data.totalProducts || 0).toLocaleString("vi-VN"));
     setText(
@@ -101,6 +115,7 @@ async function loadDashboard() {
       chart.update();
     }
   } catch (e) {
+    console.error(e);
     setText("totalProducts", "—");
     setText("monthlyRevenue", "—");
     setText("topBrand", "—");
@@ -115,12 +130,14 @@ async function loadLowStockBadge() {
     const threshold = Number(localStorage.getItem("lowStockThreshold") || 5);
     setText("lowThresholdView", String(threshold));
     const res = await fetch(`${API}/products`);
+    if (!res.ok) throw new Error("Fetch products failed");
     const { data } = await res.json();
     const low = (data || []).filter(
       (p) => (p.quantity || 0) < threshold
     ).length;
     setText("lowStockCount", String(low));
-  } catch {
+  } catch (err) {
+    console.error(err);
     setText("lowStockCount", "—");
   }
 }
@@ -129,6 +146,7 @@ async function loadTopLowStock() {
   try {
     const threshold = Number(localStorage.getItem("lowStockThreshold") || 5);
     const res = await fetch(`${API}/products`);
+    if (!res.ok) throw new Error("Fetch products failed");
     const { data } = await res.json();
     const low = (data || [])
       .filter((p) => (p.quantity || 0) < threshold)
@@ -147,17 +165,18 @@ async function loadTopLowStock() {
         <tr>
           <td>${i + 1}</td>
           <td><img src="${
-            p.image || ""
+            p.image || "https://via.placeholder.com/56x44"
           }" width="56" height="44" class="rounded shadow-sm" /></td>
-          <td class="fw-semibold">${p.name || ""}</td>
-          <td>${p.vehicle || ""}</td>
-          <td>${p.model || ""}</td>
-          <td>${p.category || ""}</td>
+          <td class="fw-semibold">${escapeHtml(p.name || "")}</td>
+          <td>${escapeHtml(p.vehicle || "")}</td>
+          <td>${escapeHtml(p.model || "")}</td>
+          <td>${escapeHtml(p.category || "")}</td>
           <td class="text-danger fw-bold">${p.quantity || 0}</td>
         </tr>`
       )
       .join("");
-  } catch {
+  } catch (err) {
+    console.error(err);
     document.getElementById(
       "topLowStockBody"
     ).innerHTML = `<tr><td colspan="7" class="text-danger text-center py-3">Không tải được dữ liệu</td></tr>`;
@@ -165,7 +184,7 @@ async function loadTopLowStock() {
 }
 
 /* ================== Quick actions ================== */
-document.getElementById("btnRefresh").addEventListener("click", () => {
+document.getElementById("btnRefresh")?.addEventListener("click", () => {
   document.body.classList.add("animate__animated", "animate__fadeOut");
   setTimeout(() => location.reload(), 500);
 });
@@ -174,37 +193,46 @@ document.getElementById("btnRefresh").addEventListener("click", () => {
 (async function init() {
   await Promise.all([loadDashboard(), loadLowStockBadge(), loadTopLowStock()]);
 })();
-(function mobileSidebarToggle(){
-  const sidebar = document.querySelector('.sidebar');
-  const overlay = document.getElementById('sidebarOverlay');
-  const btn = document.getElementById('btnToggleSidebar');
+
+/* ================== Utility ================== */
+function escapeHtml(s = "") {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/* ================== Mobile sidebar toggle ================== */
+(function mobileSidebarToggle() {
+  const sidebar = document.querySelector(".sidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  const btn = document.getElementById("btnToggleSidebar");
   if (!sidebar || !btn || !overlay) return;
 
   const open = () => {
-    sidebar.classList.add('open');
-    overlay.classList.add('show');
-    document.body.style.overflow = 'hidden'; // khóa scroll nền
+    sidebar.classList.add("open");
+    overlay.classList.add("show");
+    document.body.style.overflow = "hidden";
   };
   const close = () => {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('show');
-    document.body.style.overflow = '';
+    sidebar.classList.remove("open");
+    overlay.classList.remove("show");
+    document.body.style.overflow = "";
   };
 
-  btn.addEventListener('click', () => {
-    sidebar.classList.contains('open') ? close() : open();
+  btn.addEventListener("click", () => {
+    sidebar.classList.contains("open") ? close() : open();
   });
-  overlay.addEventListener('click', close);
+  overlay.addEventListener("click", close);
 
-  // Đóng khi click 1 mục menu
-  sidebar.querySelectorAll('a').forEach(a => {
-    a.addEventListener('click', () => {
+  sidebar.querySelectorAll("a").forEach((a) => {
+    a.addEventListener("click", () => {
       if (window.innerWidth < 992) close();
     });
   });
 
-  // Đóng bằng phím ESC
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && sidebar.classList.contains('open')) close();
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && sidebar.classList.contains("open")) close();
   });
 })();
