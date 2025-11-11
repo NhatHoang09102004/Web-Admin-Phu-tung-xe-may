@@ -112,7 +112,7 @@ document
     setTimeout(async () => {
       const api =
         JSON.parse(localStorage.getItem("settings") || "{}").apiUrl ||
-        "https://8734759df81c.ngrok-free.app/api";
+        "https://motorparts-api.onrender.com/api";
       const tbody = document.getElementById("lowStockBody");
       tbody.innerHTML = `<tr><td colspan="9" class="text-muted py-3"><i class="bi bi-hourglass-split me-1"></i> Đang tải dữ liệu...</td></tr>`;
 
@@ -130,7 +130,7 @@ document
 
         const totalLow = lowStockList.length;
         document.getElementById("btnExportLowStock").disabled = totalLow === 0;
-        animateCounter("lowStockCounter", totalLow, 600);
+        animateCounter("lowStockCounter", totalLow, 100);
 
         if (totalLow > 0)
           showToast(
@@ -147,7 +147,7 @@ document
         showToast("Lỗi khi tải danh sách sản phẩm.", "danger");
         document.body.classList.remove("animate__fadeOut");
       }
-    }, 500);
+    }, 0);
   });
 
 // Render 1 trang của danh sách tồn thấp (có ảnh)
@@ -275,37 +275,37 @@ function animateCounter(elementId, target, duration) {
     }
   }, stepTime);
 }
-(function mobileSidebarToggle(){
-  const sidebar = document.querySelector('.sidebar');
-  const overlay = document.getElementById('sidebarOverlay');
-  const btn = document.getElementById('btnToggleSidebar');
+(function mobileSidebarToggle() {
+  const sidebar = document.querySelector(".sidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  const btn = document.getElementById("btnToggleSidebar");
   if (!sidebar || !btn || !overlay) return;
 
   const open = () => {
-    sidebar.classList.add('open');
-    overlay.classList.add('show');
-    document.body.style.overflow = 'hidden'; // khóa scroll nền
+    sidebar.classList.add("open");
+    overlay.classList.add("show");
+    document.body.style.overflow = "hidden"; // khóa scroll nền
   };
   const close = () => {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('show');
-    document.body.style.overflow = '';
+    sidebar.classList.remove("open");
+    overlay.classList.remove("show");
+    document.body.style.overflow = "";
   };
 
-  btn.addEventListener('click', () => {
-    sidebar.classList.contains('open') ? close() : open();
+  btn.addEventListener("click", () => {
+    sidebar.classList.contains("open") ? close() : open();
   });
-  overlay.addEventListener('click', close);
+  overlay.addEventListener("click", close);
 
   // Đóng khi click 1 mục menu
-  sidebar.querySelectorAll('a').forEach(a => {
-    a.addEventListener('click', () => {
+  sidebar.querySelectorAll("a").forEach((a) => {
+    a.addEventListener("click", () => {
       if (window.innerWidth < 992) close();
     });
   });
 
   // Đóng bằng phím ESC
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && sidebar.classList.contains('open')) close();
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && sidebar.classList.contains("open")) close();
   });
 })();
