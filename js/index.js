@@ -1,373 +1,288 @@
-/* ../js/index.js
-   Dashboard logic: fetch stats, render chart, top-low-stock, export CSV, download chart, toast, threshold setting
+/* js/index.js
+   Dashboard logic: KPI, chart, low-stock, export CSV, download chart
 */
 
-const API_BASE = "https://motorparts-api.onrender.com/api"; // <-- đổi nếu cần
+(() => {
+  // Config: lấy API base priority: window.__API_BASE__ -> localStorage.settings.apiUrl -> '/api'
+  const cfg = JSON.parse(localStorage.getItem("settings") || "{}");
+  const API = window.__API_BASE__ || cfg.apiUrl || "/api";
 
-// Utility
-const fmtVND = (n) => {
-  if (n == null) return "—";
-  return Number(n).toLocaleString("vi-VN") + " ₫";
-};
-const fmtNumber = (n) => (n == null ? "—" : Number(n).toLocaleString("vi-VN"));
+  // DOM refs
+  const lastUpdatedEl = document.getElementById("lastUpdated");
+  const totalProductsEl = document.getElementById("totalProducts");
+  const monthlyRevenueEl = document.getElementById("monthlyRevenue");
+  const topBrandEl = document.getElementById("topBrand");
+  const newCustomersEl = document.getElementById("newCustomers");
+  const lowStockCountEl = document.getElementById("lowStockCount");
+  const lowThresholdView = document.getElementById("lowThresholdView");
+  const topLowStockBody = document.getElementById("topLowStockBody");
 
-// Simple toast using Bootstrap Toast
-function showToast(msg, type = "info", delay = 3000) {
-  const container = document.getElementById("toastContainer");
-  const el = document.createElement("div");
-  const color =
-    type === "success"
-      ? "bg-success text-white"
-      : type === "warning"
-      ? "bg-warning text-dark"
-      : type === "danger"
-      ? "bg-danger text-white"
-      : "bg-primary text-white";
-  el.className = `toast ${color} animate__animated animate__fadeInDown`;
-  el.role = "alert";
-  el.style.minWidth = "220px";
-  el.innerHTML = `<div class="toast-body">${msg}</div>`;
-  container.appendChild(el);
-  const bs = new bootstrap.Toast(el, { delay });
-  bs.show();
-  el.addEventListener("hidden.bs.toast", () => el.remove());
-}
+  const btnRefresh = document.getElementById("btnRefresh");
+  const btnExportCSV = document.getElementById("btnExportCSV");
+  const btnDownloadChart = document.getElementById("btnDownloadChart");
+  const btnSetThreshold = document.getElementById("btnSetThreshold");
 
-// Chart instance (global)
-let overviewChart = null;
+  const ctx = document.getElementById("overviewChart");
+  let overviewChart = null;
 
-// Loading placeholders: initially KPI fields contain placeholders in HTML
-function setLastUpdated() {
-  document.getElementById("lastUpdated").textContent =
-    new Date().toLocaleString("vi-VN");
-}
-
-// Load stats (tries /stats/overview then fallback)
-async function loadOverview() {
-  try {
-    // show loading placeholders (optional)
-    setLastUpdated();
-    const res = await fetch(`${API_BASE}/stats/overview`);
-    if (res.ok) {
-      const body = await res.json();
-      applyOverview(body);
-      return;
-    }
-    // fallback if /stats/overview not present
-    await fallbackComputeOverview();
-  } catch (err) {
-    console.warn("overview fetch failed:", err);
-    await fallbackComputeOverview();
+  // Helpers
+  function showToast(msg, type = "info") {
+    const container = document.getElementById("toastContainer");
+    const el = document.createElement("div");
+    el.className = `toast text-white ${
+      type === "success"
+        ? "bg-success"
+        : type === "warning"
+        ? "bg-warning text-dark"
+        : type === "danger"
+        ? "bg-danger"
+        : "bg-primary"
+    } animate__animated animate__fadeInDown`;
+    el.innerHTML = `<div class="toast-body fw-semibold">${msg}</div>`;
+    container.appendChild(el);
+    const toast = new bootstrap.Toast(el, { delay: 2800 });
+    toast.show();
+    el.addEventListener("hidden.bs.toast", () => el.remove());
   }
-}
-
-// Apply overview JSON (expected shape explained in suggestions earlier)
-function applyOverview(data) {
-  // KPIs
-  document.getElementById("totalProducts").textContent = fmtNumber(
-    data.totalProducts
-  );
-  // monthlyRevenue may be raw VND or already in millions - try detect
-  const monthlyRevenue =
-    (data.monthlyRevenue || data.monthlyRevenueSeries) ?? 0;
-  // if monthlyRevenue is number assume total for current month; else if array use sum of last entry
-  if (Array.isArray(monthlyRevenue)) {
-    // display last month value (assume in millions if flagged)
-    const last = monthlyRevenue[monthlyRevenue.length - 1] ?? 0;
-    // detect if numbers look like millions (<=2000) or VND large (>=1e6)
-    const display =
-      last > 1000000
-        ? last.toLocaleString("vi-VN") + " ₫"
-        : Math.round(last * 100) / 100 + " M";
-    document.getElementById("monthlyRevenue").textContent = display;
-  } else {
-    document.getElementById("monthlyRevenue").textContent =
-      fmtVND(monthlyRevenue);
+  function formatMoney(v) {
+    return Number(v || 0).toLocaleString("vi-VN") + " ₫";
   }
 
-  document.getElementById("topBrand").textContent = data.topBrand || "—";
-  document.getElementById("newCustomers").textContent = fmtNumber(
-    data.newCustomers || 0
-  );
+  // Theme sync
+  (function applyTheme() {
+    const logo = localStorage.getItem("sidebarLogo");
+    const color = localStorage.getItem("themeColor") || "#1e88e5";
+    const logoImg = document.getElementById("sidebarLogo");
+    if (logo && logoImg) logoImg.src = logo;
+    document.documentElement.style.setProperty("--primary", color);
+  })();
 
-  // Chart: monthlyRevenueSeries expected in either VND or million
-  const series = Array.isArray(data.monthlyRevenueSeries)
-    ? data.monthlyRevenueSeries
-    : data.monthlyRevenue || [];
-  updateOverviewChart(series);
-}
-
-// Fallback computing overview from products/orders endpoints
-async function fallbackComputeOverview() {
-  try {
-    // fetch products
-    const pRes = await fetch(`${API_BASE}/products?limit=1000`);
-    const pJson = pRes.ok ? await pRes.json() : null;
-    const products = pJson ? pJson.data || pJson : [];
-
-    // total products and top brand
-    document.getElementById("totalProducts").textContent = fmtNumber(
-      products.length
-    );
-    // compute total stock by brand
-    const brandMap = {};
-    products.forEach((p) => {
-      const b = p.vehicle || "Khác";
-      brandMap[b] = (brandMap[b] || 0) + (Number(p.quantity) || 0);
+  // Init chart
+  function initChart() {
+    overviewChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: [
+          "Th1",
+          "Th2",
+          "Th3",
+          "Th4",
+          "Th5",
+          "Th6",
+          "Th7",
+          "Th8",
+          "Th9",
+          "Th10",
+          "Th11",
+          "Th12",
+        ],
+        datasets: [
+          {
+            label: "Doanh thu (₫)",
+            data: Array(12).fill(0),
+            borderColor:
+              getComputedStyle(document.documentElement)
+                .getPropertyValue("--primary")
+                .trim() || "#1976D2",
+            backgroundColor:
+              (getComputedStyle(document.documentElement)
+                .getPropertyValue("--primary")
+                .trim() || "#1976D2") + "1A",
+            tension: 0.35,
+            fill: true,
+            pointRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+      },
     });
-    const topBrand = Object.entries(brandMap).sort((a, b) => b[1] - a[1])[0];
-    document.getElementById("topBrand").textContent = topBrand
-      ? topBrand[0]
-      : "—";
+  }
 
-    // monthly revenue try orders endpoint
-    let revenueSeries = Array(12).fill(0);
+  // Load overview stats
+  async function loadDashboard() {
     try {
-      const oRes = await fetch(`${API_BASE}/orders?limit=1000`);
-      if (oRes.ok) {
-        const oJson = await oRes.json();
-        const orders = oJson.data || oJson;
-        orders.forEach((o) => {
-          const d = new Date(o.createdAt || o.created_at || Date.now());
-          const idx = d.getMonth();
-          revenueSeries[idx] =
-            (revenueSeries[idx] || 0) +
-            Number(o.totalAmount || o.total || 0) / 1000000; // million
-        });
+      const res = await fetch(`${API}/stats/overview`);
+      if (!res.ok) throw new Error("Không lấy được số liệu tổng quan");
+      const data = await res.json();
+
+      totalProductsEl.textContent = (data.totalProducts ?? 0).toLocaleString(
+        "vi-VN"
+      );
+      monthlyRevenueEl.textContent = formatMoney(data.monthlyRevenue ?? 0);
+      topBrandEl.textContent = data.topBrand || "-";
+      newCustomersEl.textContent = data.newCustomers ?? 0;
+      lastUpdatedEl.textContent = data.updatedAt
+        ? new Date(data.updatedAt).toLocaleString("vi-VN")
+        : new Date().toLocaleString("vi-VN");
+
+      if (Array.isArray(data.monthlyRevenueSeries) && overviewChart) {
+        const arr = data.monthlyRevenueSeries.slice(0, 12);
+        overviewChart.data.datasets[0].data = arr.concat(
+          Array(Math.max(0, 12 - arr.length)).fill(0)
+        );
+        overviewChart.update();
       }
-    } catch (e) {
-      /* ignore */
+    } catch (err) {
+      console.error(err);
+      showToast("Không tải được số liệu tổng quan.", "danger");
+      totalProductsEl.textContent = "—";
+      monthlyRevenueEl.textContent = "—";
+      topBrandEl.textContent = "—";
+      newCustomersEl.textContent = "—";
     }
-
-    // set monthlyRevenue to last month value
-    const lastVal =
-      Math.round((revenueSeries[revenueSeries.length - 1] || 0) * 100) / 100;
-    document.getElementById("monthlyRevenue").textContent = lastVal
-      ? lastVal + " M"
-      : "—";
-
-    updateOverviewChart(revenueSeries);
-  } catch (err) {
-    console.error("fallback fail", err);
-    showToast("Không thể tải dữ liệu tổng quan.", "danger");
   }
-}
 
-// Create or update overview chart
-function updateOverviewChart(series = Array(12).fill(0)) {
-  const ctx = document.getElementById("overviewChart").getContext("2d");
-  const labels = [
-    "Th1",
-    "Th2",
-    "Th3",
-    "Th4",
-    "Th5",
-    "Th6",
-    "Th7",
-    "Th8",
-    "Th9",
-    "Th10",
-    "Th11",
-    "Th12",
-  ];
-  if (overviewChart) {
-    overviewChart.data.datasets[0].data = series.map(
-      (v) => Math.round((Number(v) || 0) * 100) / 100
+  // Low stock & top low
+  async function loadLowStock() {
+    try {
+      const threshold = Number(localStorage.getItem("lowStockThreshold") || 5);
+      lowThresholdView.textContent = String(threshold);
+
+      // Use products endpoint (ensure backend supports limit param)
+      const res = await fetch(`${API}/products?limit=1000`);
+      if (!res.ok) throw new Error("Không lấy được sản phẩm");
+      const json = await res.json();
+      const products = json.data || [];
+
+      const low = products.filter((p) => (p.quantity ?? 0) < threshold);
+      lowStockCountEl.textContent = String(low.length);
+
+      const top5 = low
+        .sort((a, b) => (a.quantity || 0) - (b.quantity || 0))
+        .slice(0, 5);
+      if (!top5.length) {
+        topLowStockBody.innerHTML = `<tr><td colspan="7" class="text-success text-center py-3">🎉 Không có mặt hàng nào dưới ngưỡng!</td></tr>`;
+        return;
+      }
+      topLowStockBody.innerHTML = top5
+        .map(
+          (p, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td><img src="${
+            p.image || ""
+          }" width="56" height="44" class="rounded shadow-sm" style="object-fit:cover"/></td>
+          <td class="fw-semibold">${p.name || ""}</td>
+          <td>${p.vehicle || ""}</td>
+          <td>${p.model || ""}</td>
+          <td>${p.category || ""}</td>
+          <td class="text-danger fw-bold">${p.quantity ?? 0}</td>
+        </tr>`
+        )
+        .join("");
+    } catch (err) {
+      console.error(err);
+      topLowStockBody.innerHTML = `<tr><td colspan="7" class="text-danger text-center py-3">Không tải được dữ liệu</td></tr>`;
+      lowStockCountEl.textContent = "—";
+    }
+  }
+
+  // Export CSV
+  async function exportProductsCsv() {
+    try {
+      const res = await fetch(`${API}/products?limit=10000`);
+      if (!res.ok) throw new Error("Không lấy được sản phẩm để xuất");
+      const { data: products = [] } = await res.json();
+      const headers = [
+        "_id",
+        "name",
+        "vehicle",
+        "model",
+        "category",
+        "price",
+        "quantity",
+        "status",
+        "createdAt",
+      ];
+      const rows = products.map((p) =>
+        headers.map((h) => JSON.stringify(p[h] ?? "")).join(",")
+      );
+      const csv = [headers.join(","), ...rows].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `products_inventory_${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("✅ Đã tạo file CSV.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("❌ Không thể xuất CSV.", "danger");
+    }
+  }
+
+  // Download chart
+  function downloadChartImage() {
+    try {
+      const link = document.createElement("a");
+      link.href = overviewChart.toBase64Image();
+      link.download = `revenue_chart_${new Date()
+        .toISOString()
+        .slice(0, 10)}.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showToast("✅ Đã tải biểu đồ.", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("❌ Không thể tải biểu đồ.", "warning");
+    }
+  }
+
+  // Set threshold
+  function setThreshold() {
+    const current = Number(localStorage.getItem("lowStockThreshold") || 5);
+    const v = prompt(
+      "Đặt ngưỡng tồn thấp (số nguyên, ví dụ 5):",
+      String(current)
     );
-    overviewChart.update();
-    return;
-  }
-  overviewChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Doanh thu (triệu ₫)",
-          data: series.map((v) => Math.round((Number(v) || 0) * 100) / 100),
-          borderColor:
-            getComputedStyle(document.documentElement)
-              .getPropertyValue("--primary")
-              ?.trim() || "#1E88E5",
-          backgroundColor: "rgba(30,136,229,0.08)",
-          fill: true,
-          tension: 0.35,
-          borderWidth: 3,
-          pointRadius: 4,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } },
-    },
-  });
-}
-
-// Top low stock
-async function loadTopLowStock() {
-  try {
-    const threshold = Number(localStorage.getItem("lowStockThreshold") || 5);
-    document.getElementById("lowThresholdView").textContent = threshold;
-
-    const res = await fetch(`${API_BASE}/products?limit=1000`);
-    const json = res.ok ? await res.json() : null;
-    const products = json ? json.data || json : [];
-
-    const low = products
-      .filter((p) => (Number(p.quantity) || 0) < threshold)
-      .sort((a, b) => (Number(a.quantity) || 0) - (Number(b.quantity) || 0))
-      .slice(0, 5);
-
-    const tbody = document.getElementById("topLowStockBody");
-    if (!low.length) {
-      tbody.innerHTML = `<tr><td colspan="7" class="text-success text-center py-3">🎉 Không có mặt hàng dưới ngưỡng!</td></tr>`;
-      document.getElementById("lowStockCount").textContent = 0;
+    if (v === null) return;
+    const n = parseInt(v, 10);
+    if (Number.isNaN(n) || n < 0) {
+      alert("Giá trị không hợp lệ");
       return;
     }
-
-    tbody.innerHTML = low
-      .map(
-        (p, i) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td><img src="${
-          p.image || "https://via.placeholder.com/56"
-        }" width="56" height="44" class="rounded shadow-sm" /></td>
-        <td class="fw-semibold">${p.name || ""}</td>
-        <td>${p.vehicle || ""}</td>
-        <td>${p.model || ""}</td>
-        <td>${p.category || ""}</td>
-        <td class="text-danger fw-bold">${p.quantity || 0}</td>
-      </tr>
-    `
-      )
-      .join("");
-    document.getElementById("lowStockCount").textContent = low.length;
-  } catch (err) {
-    console.error(err);
-    document.getElementById(
-      "topLowStockBody"
-    ).innerHTML = `<tr><td colspan="7" class="text-danger text-center py-3">Không tải được dữ liệu</td></tr>`;
+    localStorage.setItem("lowStockThreshold", String(n));
+    lowThresholdView.textContent = String(n);
+    showToast(`Đã đặt ngưỡng: ${n}`, "success");
+    loadLowStock();
   }
-}
 
-// Export CSV (overview + low stock)
-async function exportCSV() {
-  try {
-    // get chart data
-    const labels = overviewChart?.data?.labels || [];
-    const series = overviewChart?.data?.datasets?.[0]?.data || [];
+  // Events
+  btnRefresh.addEventListener("click", () => {
+    loadAll();
+    showToast("Đã làm mới", "info");
+  });
+  btnExportCSV.addEventListener("click", exportProductsCsv);
+  btnDownloadChart.addEventListener("click", downloadChartImage);
+  btnSetThreshold.addEventListener("click", setThreshold);
 
-    // low stock rows (re-fetch to get full)
-    const res = await fetch(`${API_BASE}/products?limit=1000`);
-    const json = res.ok ? await res.json() : null;
-    const products = json ? json.data || json : [];
-    const threshold = Number(localStorage.getItem("lowStockThreshold") || 5);
-    const low = products
-      .filter((p) => (Number(p.quantity) || 0) < threshold)
-      .slice(0, 50);
-
-    const rows = [];
-    rows.push(["KPI Overview"]);
-    rows.push([
-      "TotalProducts",
-      document.getElementById("totalProducts").textContent,
-    ]);
-    rows.push([
-      "MonthlyRevenue",
-      document.getElementById("monthlyRevenue").textContent,
-    ]);
-    rows.push(["TopBrand", document.getElementById("topBrand").textContent]);
-    rows.push([]);
-    rows.push(["Monthly Revenue"]);
-    rows.push(["Month", "Value (M)"]);
-    labels.forEach((lab, idx) => rows.push([lab, series[idx] || 0]));
-    rows.push([]);
-    rows.push([`Top low stock (threshold ${threshold})`]);
-    rows.push(["#", "name", "vehicle", "model", "category", "quantity"]);
-    low.forEach((p, i) =>
-      rows.push([
-        i + 1,
-        p.name || "",
-        p.vehicle || "",
-        p.model || "",
-        p.category || "",
-        p.quantity || 0,
-      ])
-    );
-
-    const csv = rows
-      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `dashboard_export_${new Date()
-      .toISOString()
-      .slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast("Đã xuất CSV thành công", "success");
-  } catch (err) {
-    console.error(err);
-    showToast("Không xuất được CSV", "danger");
+  async function loadAll() {
+    await Promise.all([loadDashboard(), loadLowStock()]);
   }
-}
 
-// Download chart image
-function downloadOverviewChart() {
-  if (!overviewChart) {
-    showToast("Biểu đồ chưa sẵn sàng", "warning");
-    return;
+  // Init
+  function init() {
+    initChart();
+    loadAll();
+    // accessibility: close sidebar on ESC
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        const sidebar = document.querySelector(".sidebar");
+        if (sidebar && sidebar.classList.contains("open"))
+          sidebar.classList.remove("open");
+      }
+    });
   }
-  const url = overviewChart.toBase64Image();
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `overview_chart_${new Date().toISOString().slice(0, 10)}.png`;
-  a.click();
-  showToast("Đã lưu ảnh biểu đồ", "success");
-}
 
-// Change threshold prompt
-function setThresholdPrompt() {
-  const cur = Number(localStorage.getItem("lowStockThreshold") || 5);
-  const ans = prompt("Nhập ngưỡng tồn thấp (số nguyên dương):", String(cur));
-  if (ans === null) return;
-  const v = parseInt(ans, 10);
-  if (isNaN(v) || v < 0) {
-    showToast("Ngưỡng không hợp lệ", "danger");
-    return;
-  }
-  localStorage.setItem("lowStockThreshold", String(v));
-  document.getElementById("lowThresholdView").textContent = v;
-  loadTopLowStock();
-  showToast(`Đã cập nhật ngưỡng: ${v}`, "success");
-}
-
-// Wire buttons
-document.getElementById("btnRefresh").addEventListener("click", () => {
-  loadOverview();
-  loadTopLowStock();
-  showToast("Đang cập nhật...", "info", 800);
-});
-document.getElementById("btnExportCSV").addEventListener("click", exportCSV);
-document
-  .getElementById("btnDownloadChart")
-  .addEventListener("click", downloadOverviewChart);
-document
-  .getElementById("btnSetThreshold")
-  .addEventListener("click", setThresholdPrompt);
-
-// Init
-(function initDashboard() {
-  // set defaults if not present
-  if (!localStorage.getItem("lowStockThreshold"))
-    localStorage.setItem("lowStockThreshold", "5");
-
-  loadOverview();
-  loadTopLowStock();
-  setLastUpdated();
+  init();
 })();

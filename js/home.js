@@ -6,9 +6,28 @@ const limit = 10;
 
 // ====== Dòng xe theo hãng ======
 const modelOptions = {
-  Honda: ["Wave Alpha", "Vision", "Air Blade", "Winner X"],
-  Yamaha: ["Exciter 150", "NVX", "Sirius", "Jupiter"],
-  SYM: ["Angela", "Galaxy", "Star SR", "Elite"],
+  Honda: [
+    "Dream",
+    "Wave Alpha",
+    "Wave RSX",
+    "Blade",
+    "Future",
+    "Vision",
+    "Air Blade",
+    "Lead",
+    "SH",
+  ],
+  Yamaha: [
+    "Sirius",
+    "Sirius Fi",
+    "Jupiter",
+    "Taurus",
+    "Exciter",
+    "Grande",
+    "Janus",
+  ],
+  SYM: ["Galaxy 50", "Angela 50 ", "Elegant 50", "Angel 110"],
+  TQ: ["Wave TQ", "Sirus TQ", "Dream TQ"],
 };
 
 // ====== Hiển thị Toast ======
@@ -258,15 +277,30 @@ document.getElementById("tableBody").addEventListener("click", async (e) => {
   if (!row) return;
   const id = row.dataset.id;
 
-  // --- CHỈNH SỬA ---
   if (btnEdit) {
     try {
       const res = await fetch(`${PRODUCTS_API}/${id}`);
       const p = await res.json();
+
       if (!res.ok || !p._id)
         return showToast("❌ Không tìm thấy sản phẩm.", "danger");
+
       idField.value = p._id;
-      for (let k in fields) fields[k].value = p[k] || "";
+
+      // Điền tất cả field (trừ category)
+      for (let k in fields) {
+        if (k !== "category") fields[k].value = p[k] || "";
+      }
+
+      // --- HIỂN THỊ CATEGORY ---
+      const cateSelect = document.getElementById("categoryField");
+      for (let opt of cateSelect.options) {
+        if (opt.textContent.trim() === p.category.trim()) {
+          cateSelect.value = opt.textContent;
+          break;
+        }
+      }
+
       modalTitle.textContent = "Chỉnh sửa sản phẩm";
       modalError.style.display = "none";
       modal.show();
