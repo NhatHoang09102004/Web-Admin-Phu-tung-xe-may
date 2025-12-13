@@ -188,55 +188,55 @@
           },
         },
       });
+      async function loadRevenueChart() {
+        try {
+          const res = await fetch(
+            "https://motorparts-api.onrender.com/api/stats/revenue-monthly"
+          );
+          const data = await res.json();
 
-      /* ====== Biểu đồ 3: Doanh thu theo tháng ====== */
-      const ctxRevenue = document.getElementById("revenueChart");
-      new Chart(ctxRevenue, {
-        type: "line",
-        data: {
-          labels: [
-            "Th1",
-            "Th2",
-            "Th3",
-            "Th4",
-            "Th5",
-            "Th6",
-            "Th7",
-            "Th8",
-            "Th9",
-            "Th10",
-            "Th11",
-            "Th12",
-          ],
-          datasets: [
-            {
-              label: "Doanh thu (triệu ₫)",
-              data: [45, 60, 72, 81, 95, 98, 101, 109, 115, 125, 132, 140],
-              borderColor: "#1E88E5",
-              backgroundColor: "rgba(25,118,210,0.1)",
-              fill: true,
-              tension: 0.35,
-              borderWidth: 3,
-              pointRadius: 5,
-              pointBackgroundColor: "#1565C0",
+          const ctxRevenue = document.getElementById("revenueChart");
+
+          new Chart(ctxRevenue, {
+            type: "line",
+            data: {
+              labels: data.months, // ["Th1", "Th2", ...]
+              datasets: [
+                {
+                  label: "Doanh thu (₫)",
+                  data: data.revenue, // Mảng doanh thu API trả về
+                  borderColor: "#1E88E5",
+                  backgroundColor: "rgba(25,118,210,0.15)",
+                  fill: true,
+                  tension: 0.35,
+                  borderWidth: 3,
+                  pointRadius: 5,
+                  pointBackgroundColor: "#1565C0",
+                },
+              ],
             },
-          ],
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: function (value) {
-                  return value + "M";
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    callback: function (value) {
+                      return value.toLocaleString("vi-VN") + " ₫";
+                    },
+                  },
                 },
               },
             },
-          },
-        },
-      });
+          });
+        } catch (error) {
+          console.error("Lỗi tải doanh thu:", error);
+        }
+      }
+
+      // Gọi API khi load trang
+      loadRevenueChart();
     </script>
   </body>
 </html>

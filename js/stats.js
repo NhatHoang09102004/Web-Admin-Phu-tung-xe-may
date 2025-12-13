@@ -102,3 +102,52 @@ new Chart(ctxRevenue, {
     if (e.key === "Escape" && sidebar.classList.contains("open")) close();
   });
 })();
+  async function loadRevenueChart() {
+    try {
+      const res = await fetch("https://motorparts-api.onrender.com/api/stats/revenue-monthly");
+      const data = await res.json();
+
+      const ctxRevenue = document.getElementById("revenueChart");
+
+      new Chart(ctxRevenue, {
+        type: "line",
+        data: {
+          labels: data.months,   // Ví dụ: ["Th1","Th2","Th3",...]
+          datasets: [
+            {
+              label: "Doanh thu (₫)",
+              data: data.revenue, // Mảng doanh thu từng tháng
+              borderColor: "#1E88E5",
+              backgroundColor: "rgba(25,118,210,0.15)",
+              fill: true,
+              tension: 0.35,
+              borderWidth: 3,
+              pointRadius: 5,
+              pointBackgroundColor: "#1565C0",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: { 
+            legend: { display: false } 
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function (value) {
+                  return value.toLocaleString("vi-VN") + " ₫";
+                },
+              },
+            },
+          },
+        },
+      });
+    } catch (err) {
+      console.error("Lỗi tải doanh thu:", err);
+    }
+  }
+
+  // Gọi API khi load trang
+  loadRevenueChart();

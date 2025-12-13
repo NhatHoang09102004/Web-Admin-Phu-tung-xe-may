@@ -105,7 +105,8 @@
   // Load overview stats
   async function loadDashboard() {
     try {
-      const res = await fetch(`${API}/stats/overview`);
+      const res = await fetch(`${API}/stats/revenue-monthly
+`);
       if (!res.ok) throw new Error("Không lấy được số liệu tổng quan");
       const data = await res.json();
 
