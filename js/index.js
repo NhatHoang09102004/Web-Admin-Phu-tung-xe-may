@@ -114,7 +114,7 @@
         "vi-VN"
       );
       monthlyRevenueEl.textContent = formatMoney(data.monthlyRevenue ?? 0);
-      topBrandEl.textContent = data.topBrand || "-";
+      topBrandEl.textContent = data.topBrand || "Honda";
       newCustomersEl.textContent = data.newCustomers ?? 0;
       lastUpdatedEl.textContent = data.updatedAt
         ? new Date(data.updatedAt).toLocaleString("vi-VN")

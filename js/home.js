@@ -183,16 +183,32 @@ function escapeHtml(s = "") {
 }
 
 // ====== Bộ lọc tự động ======
+
+// Tìm kiếm theo tên (q)
 filters.q.addEventListener("input", () => {
   clearTimeout(filters.q.timer);
-  filters.q.timer = setTimeout(() => fetchProducts(1), 400);
+
+  filters.q.timer = setTimeout(() => {
+    filters.q.value = filters.q.value.trim().toLowerCase(); // chuẩn hóa input
+    fetchProducts(1);
+  }, 400);
 });
-["vehicle", "model", "category", "status"].forEach((id) =>
-  document.getElementById(id).addEventListener("change", () => fetchProducts(1))
-);
+
+// Các filter: vehicle, model, category, status
+["vehicle", "model", "category", "status"].forEach((id) => {
+  document.getElementById(id).addEventListener("change", () => {
+    fetchProducts(1);
+  });
+});
+
+// Nút Reset
 document.getElementById("btnReset").addEventListener("click", () => {
-  Object.values(filters).forEach((el) => (el.value = ""));
+  Object.values(filters).forEach((el) => {
+    el.value = "";
+  });
+
   modelSelect.innerHTML = `<option value="">Tất cả</option>`;
+
   fetchProducts(1);
 });
 
