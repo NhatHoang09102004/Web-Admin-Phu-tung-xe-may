@@ -412,7 +412,7 @@ function renderInvoice(order) {
         ).toLocaleString("vi-VN")} ₫</h5>
       </div>
       <div style="text-align:center; margin-top:20px;">
-        <img src="${qrUrl}" alt="QR Thanh toán" style="width:140px; height:140px; object-fit:contain; border:1px solid #000; padding:5px; border-radius:6px;">
+        <img src="${qrUrl}" alt="QR Thanh toán" style="width:200px; height:200px; object-fit:contain; border:1px solid #000; padding:5px; border-radius:6px;">
       </div>
       <hr style="border:none; border-top:1px solid #000; margin:20px 0 10px;">
       <p style="text-align:center; font-style:italic; font-size:13px; margin:5px 0;">Cảm ơn quý khách đã tin tưởng và mua hàng!</p>

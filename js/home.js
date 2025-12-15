@@ -189,7 +189,7 @@ filters.q.addEventListener("input", () => {
   clearTimeout(filters.q.timer);
 
   filters.q.timer = setTimeout(() => {
-    filters.q.value = filters.q.value.trim().toLowerCase(); // chuẩn hóa input
+    filters.q.value = filters.q.value.toLowerCase(); // chuẩn hóa input
     fetchProducts(1);
   }, 400);
 });
