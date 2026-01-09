@@ -125,8 +125,32 @@
           <div
             class="chart-card animate__animated animate__fadeInUp animate__delay-2s"
           >
-            <h5><i class="bi bi-cash-coin me-2"></i> Doanh thu theo tháng</h5>
-            <canvas id="revenueChart" height="120"></canvas>
+            <!-- BẢNG LỊCH SỬ MUA HÀNG -->
+            <div class="mt-4">
+              <h5>
+                <i class="bi bi-receipt-cutoff me-2"></i>Danh sách đơn hàng
+              </h5>
+
+              <div class="table-responsive mt-3">
+                <table class="table table-bordered table-hover align-middle">
+                  <thead class="table-primary">
+                    <tr>
+                      <th>Mã hóa đơn</th>
+                      <th>Tên khách</th>
+                      <th>SĐT</th>
+                      <th>Tổng tiền</th>
+                      <th>Ngày tạo</th>
+                      <th>Chi tiết</th>
+                      <!-- ⭐ thêm cột -->
+                    </tr>
+                  </thead>
+
+                  <tbody id="orderTableBody">
+                    <!-- JS load dữ liệu -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
       </div>

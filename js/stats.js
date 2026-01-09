@@ -102,52 +102,81 @@ new Chart(ctxRevenue, {
     if (e.key === "Escape" && sidebar.classList.contains("open")) close();
   });
 })();
-  async function loadRevenueChart() {
-    try {
-      const res = await fetch("https://motorparts-api.onrender.com/api/stats/revenue-monthly");
-      const data = await res.json();
+async function loadRevenueChart() {
+  try {
+    const res = await fetch(
+      "https://motorparts-api.onrender.com/api/stats/revenue-monthly"
+    );
+    const data = await res.json();
 
-      const ctxRevenue = document.getElementById("revenueChart");
+    const ctxRevenue = document.getElementById("revenueChart");
 
-      new Chart(ctxRevenue, {
-        type: "line",
-        data: {
-          labels: data.months,   // Ví dụ: ["Th1","Th2","Th3",...]
-          datasets: [
-            {
-              label: "Doanh thu (₫)",
-              data: data.revenue, // Mảng doanh thu từng tháng
-              borderColor: "#1E88E5",
-              backgroundColor: "rgba(25,118,210,0.15)",
-              fill: true,
-              tension: 0.35,
-              borderWidth: 3,
-              pointRadius: 5,
-              pointBackgroundColor: "#1565C0",
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          plugins: { 
-            legend: { display: false } 
+    new Chart(ctxRevenue, {
+      type: "line",
+      data: {
+        labels: data.months, // Ví dụ: ["Th1","Th2","Th3",...]
+        datasets: [
+          {
+            label: "Doanh thu (₫)",
+            data: data.revenue, // Mảng doanh thu từng tháng
+            borderColor: "#1E88E5",
+            backgroundColor: "rgba(25,118,210,0.15)",
+            fill: true,
+            tension: 0.35,
+            borderWidth: 3,
+            pointRadius: 5,
+            pointBackgroundColor: "#1565C0",
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: function (value) {
-                  return value.toLocaleString("vi-VN") + " ₫";
-                },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function (value) {
+                return value.toLocaleString("vi-VN") + " ₫";
               },
             },
           },
         },
-      });
-    } catch (err) {
-      console.error("Lỗi tải doanh thu:", err);
-    }
+      },
+    });
+  } catch (err) {
+    console.error("Lỗi tải doanh thu:", err);
   }
+}
 
-  // Gọi API khi load trang
-  loadRevenueChart();
+// Gọi API khi load trang
+loadRevenueChart();
+
+async function loadOrderHistory() {
+  try {
+    const res = await fetch("https://motorparts-api.onrender.com/api/orders");
+    const orders = await res.json();
+
+    const tbody = document.getElementById("orderTableBody");
+    tbody.innerHTML = "";
+
+    orders.forEach((o) => {
+      const row = `
+          <tr>
+            <td><strong>${o.invoiceCode}</strong></td>
+            <td>${o.customerInfo?.name || "-"}</td>
+            <td>${o.customerInfo?.phone || "-"}</td>
+            <td>${o.totalAmount.toLocaleString("vi-VN")} ₫</td>
+            <td>${new Date(o.createdAt).toLocaleString("vi-VN")}</td>
+          </tr>
+        `;
+      tbody.innerHTML += row;
+    });
+  } catch (error) {
+    console.error("Lỗi tải lịch sử đơn hàng:", error);
+  }
+}
+
+loadOrderHistory();
