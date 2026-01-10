@@ -156,6 +156,13 @@ async function loadOrders() {
     const res = await fetch("https://motorparts-api.onrender.com/api/orders");
     const data = await res.json();
 
+    console.log("Dữ liệu API:", data);
+
+    if (!Array.isArray(data)) {
+      console.error("API không trả về mảng!");
+      return;
+    }
+
     renderOrders(data);
   } catch (error) {
     console.error("Lỗi tải đơn hàng:", error);
@@ -169,19 +176,15 @@ function renderOrders(data) {
   data.forEach((order) => {
     const row = `
       <tr>
-        <td>${order.invoiceCode || ""}</td>
+        <td>${order.invoiceCode || "Không có mã"}</td>
         <td>${order.customerName || "N/A"}</td>
         <td>${order.phone || "N/A"}</td>
-        <td class="text-money">${(order.totalAmount || 0).toLocaleString(
-          "vi-VN"
-        )} ₫</td>
-        <td class="text-date">${new Date(order.createdAt).toLocaleString(
-          "vi-VN"
-        )}</td>
+        <td>${(order.totalAmount || 0).toLocaleString("vi-VN")} ₫</td>
+        <td>${new Date(order.createdAt).toLocaleString("vi-VN")}</td>
 
         <td class="text-center">
           <button 
-            class="btn btn-primary btn-sm btn-detail"
+            class="btn btn-primary btn-sm"
             onclick="viewOrderDetail('${order._id}')"
           >
             <i class="bi bi-eye-fill me-1"></i> Xem
@@ -189,7 +192,6 @@ function renderOrders(data) {
         </td>
       </tr>
     `;
-
     tbody.innerHTML += row;
   });
 }
@@ -198,5 +200,4 @@ function viewOrderDetail(id) {
   alert("Xem chi tiết hóa đơn: " + id);
 }
 
-// Load khi mở trang
 loadOrders();
