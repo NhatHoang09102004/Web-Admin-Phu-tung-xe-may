@@ -151,32 +151,52 @@ async function loadRevenueChart() {
   }
 }
 
-// Gọi API khi load trang
-loadRevenueChart();
-
-async function loadOrderHistory() {
+async function loadOrders() {
   try {
     const res = await fetch("https://motorparts-api.onrender.com/api/orders");
-    const orders = await res.json();
+    const data = await res.json();
 
-    const tbody = document.getElementById("orderTableBody");
-    tbody.innerHTML = "";
-
-    orders.forEach((o) => {
-      const row = `
-          <tr>
-            <td><strong>${o.invoiceCode}</strong></td>
-            <td>${o.customerInfo?.name || "-"}</td>
-            <td>${o.customerInfo?.phone || "-"}</td>
-            <td>${o.totalAmount.toLocaleString("vi-VN")} ₫</td>
-            <td>${new Date(o.createdAt).toLocaleString("vi-VN")}</td>
-          </tr>
-        `;
-      tbody.innerHTML += row;
-    });
+    renderOrders(data);
   } catch (error) {
-    console.error("Lỗi tải lịch sử đơn hàng:", error);
+    console.error("Lỗi tải đơn hàng:", error);
   }
 }
 
-loadOrderHistory();
+function renderOrders(data) {
+  const tbody = document.getElementById("orderTableBody");
+  tbody.innerHTML = "";
+
+  data.forEach((order) => {
+    const row = `
+      <tr>
+        <td>${order.invoiceCode || ""}</td>
+        <td>${order.customerName || "N/A"}</td>
+        <td>${order.phone || "N/A"}</td>
+        <td class="text-money">${(order.totalAmount || 0).toLocaleString(
+          "vi-VN"
+        )} ₫</td>
+        <td class="text-date">${new Date(order.createdAt).toLocaleString(
+          "vi-VN"
+        )}</td>
+
+        <td class="text-center">
+          <button 
+            class="btn btn-primary btn-sm btn-detail"
+            onclick="viewOrderDetail('${order._id}')"
+          >
+            <i class="bi bi-eye-fill me-1"></i> Xem
+          </button>
+        </td>
+      </tr>
+    `;
+
+    tbody.innerHTML += row;
+  });
+}
+
+function viewOrderDetail(id) {
+  alert("Xem chi tiết hóa đơn: " + id);
+}
+
+// Load khi mở trang
+loadOrders();
