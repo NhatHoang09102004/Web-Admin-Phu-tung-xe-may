@@ -74,6 +74,7 @@ async function loadProducts() {
       if (qty <= 0) progressColor = "bg-danger";
       else if (qty <= 5) progressColor = "bg-danger";
       else if (qty <= 20) progressColor = "bg-warning";
+      else progressColor = "bg-success";
 
       // Tính phần trăm hiển thị (giới hạn tối đa 100)
       const maxStock = 100;
@@ -253,8 +254,7 @@ async function clearCart() {
     const cart = await res.json();
     const c = cart.cart || cart;
     if (!c.items?.length) return;
-    for (const item of c.items)
-      await removeFromCart(item.productId || item.productId);
+    for (const item of c.items) await removeFromCart(item.productId);
     showToast("🗑️ Đã xóa toàn bộ giỏ hàng", "warning");
   } catch (err) {
     console.error(err);
@@ -268,6 +268,8 @@ function renderCart(items, total) {
   const list = document.getElementById("cartList");
   const totalEl = document.getElementById("totalAmount");
   const badge = document.getElementById("cartCountBadge");
+  const laborInput = document.getElementById("laborCost");
+
   if (!list) return;
   list.innerHTML = "";
   badge && (badge.textContent = items.length || 0);
@@ -309,8 +311,17 @@ function renderCart(items, total) {
       </div>`;
     list.appendChild(li);
   });
-  if (totalEl)
-    totalEl.textContent = Number(total || 0).toLocaleString("vi-VN") + " ₫";
+
+  // ===== LẤY TIỀN CÔNG =====
+  let laborCost = 0;
+  if (laborInput) {
+    laborCost = parseInt(laborInput.value.replace(/\./g, "")) || 0;
+  }
+
+  // ===== CỘNG TIỀN CÔNG VÀO TỔNG =====
+  const finalTotal = Number(total || 0) + laborCost;
+
+  if (totalEl) totalEl.textContent = finalTotal.toLocaleString("vi-VN") + " ₫";
 }
 
 // ======= THANH TOÁN (TẠM THỜI - chỉ hiển thị hóa đơn, chưa trừ hàng) =======
@@ -320,20 +331,34 @@ document.getElementById("btnCheckout")?.addEventListener("click", async () => {
     if (!res.ok) throw new Error("Cannot load cart");
     const cart = await res.json();
     const c = cart.cart || cart;
+
     if (!c.items || !c.items.length) {
       showToast("🛒 Giỏ hàng đang trống!", "warning");
       return;
     }
 
+    // ===== LẤY TIỀN CÔNG =====
+    const laborInput = document.getElementById("laborCost");
+    let laborCost = 0;
+
+    if (laborInput) {
+      laborCost = parseInt(laborInput.value.replace(/\./g, "")) || 0;
+    }
+
+    // ===== CỘNG VÀO TỔNG TIỀN =====
+    const total = c.totalAmount || c.total || 0;
+    const finalTotal = total + laborCost;
+
     const order = {
       id: "ORD-" + Date.now(),
       customerInfo: {
-        name: "Khách lẻ",
+        name: "Khách hàng",
         phone: "0385188318",
         address: "TDP 4D, Đạ Tẻh, Lâm Đồng",
       },
       items: c.items,
-      totalAmount: c.totalAmount || c.total || 0,
+      totalAmount: finalTotal, // <===== ĐÃ CỘNG TIỀN CÔNG
+      laborCost: laborCost, // <===== NẾU MUỐN HIỂN THỊ TRONG HÓA ĐƠN
       createdAt: new Date(),
     };
 
@@ -355,10 +380,12 @@ function renderInvoice(order) {
   const amount = order.totalAmount || 0;
   const note = `Cảm ơn quý khách - Thanh toán đơn hàng ${order.id}`;
 
+  // QR Thanh toán
   const qrUrl = `https://img.vietqr.io/image/${bankCode}-${accountNumber}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(
     note
   )}&accountName=${encodeURIComponent(accountName)}`;
 
+  // Render danh sách sản phẩm
   const itemsHTML = order.items
     .map(
       (i, idx) => `
@@ -376,6 +403,18 @@ function renderInvoice(order) {
     )
     .join("");
 
+  // Tổng tiền hàng
+  const productTotal = order.items.reduce(
+    (sum, i) => sum + i.price * i.quantity,
+    0
+  );
+
+  // Tiền công
+  const laborCost = order.laborCost || 0;
+
+  // Tổng cộng cuối cùng
+  const finalTotal = amount;
+
   content.innerHTML = `
     <div style="font-family: Arial, sans-serif; color: #000; line-height:1.4; font-size:13px;">
       <div style="text-align:center; margin-bottom:12px;">
@@ -383,6 +422,7 @@ function renderInvoice(order) {
         <div style="font-size:12px; margin-top:3px;">Địa chỉ: TDP 4D, Huyện Đạ Tẻh, Tỉnh Lâm Đồng</div>
         <hr style="border:none; border-top:2px solid #000; margin:10px 0;">
       </div>
+
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
         <div><p style="margin:2px 0;"><b>Mã hóa đơn:</b> ${order.id}</p></div>
         <div style="text-align:right;">
@@ -394,6 +434,7 @@ function renderInvoice(order) {
           ).toLocaleTimeString("vi-VN")}</p>
         </div>
       </div>
+
       <table style="width:100%; border-collapse:collapse; margin-top:5px;">
         <thead>
           <tr style="background:#f3f3f3; text-align:center;">
@@ -406,18 +447,35 @@ function renderInvoice(order) {
         </thead>
         <tbody>${itemsHTML}</tbody>
       </table>
-      <div style="text-align:right; margin-top:20px;">
-        <h5 style="margin:0; font-size:14px; font-weight:700;">Tổng cộng: ${Number(
-          order.totalAmount || 0
-        ).toLocaleString("vi-VN")} ₫</h5>
+
+      <div style="margin-top:15px; font-size:13px;">
+        <div style="display:flex; justify-content:space-between;">
+          <span><b>Tổng tiền hàng:</b></span>
+          <span>${productTotal.toLocaleString("vi-VN")} ₫</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-top:5px;">
+          <span><b>Tiền công sửa chữa:</b></span>
+          <span>${laborCost.toLocaleString("vi-VN")} ₫</span>
+        </div>
+
+        <hr style="margin:10px 0;">
+
+        <div style="display:flex; justify-content:space-between; font-size:15px; font-weight:700;">
+          <span>TỔNG CỘNG:</span>
+          <span>${finalTotal.toLocaleString("vi-VN")} ₫</span>
+        </div>
       </div>
+
       <div style="text-align:center; margin-top:20px;">
-        <img src="${qrUrl}" alt="QR Thanh toán" style="width:200px; height:200px; object-fit:contain; border:1px solid #000; padding:5px; border-radius:6px;">
+        <img src="${qrUrl}" alt="QR Thanh toán" 
+             style="width:200px; height:200px; object-fit:contain; border:1px solid #000; padding:5px; border-radius:6px;">
       </div>
+
       <hr style="border:none; border-top:1px solid #000; margin:20px 0 10px;">
-      <p style="text-align:center; font-style:italic; font-size:13px; margin:5px 0;">Cảm ơn quý khách đã tin tưởng và mua hàng!</p>
     </div>
   `;
+
   new bootstrap.Modal(document.getElementById("invoiceModal")).show();
 }
 
@@ -444,18 +502,107 @@ document
         return;
       }
 
-      // In popup
       const invoiceHTML =
         document.getElementById("invoiceContent")?.innerHTML || "";
       const printWin = window.open("", "_blank", "width=900,height=700");
+
       printWin.document.write(`
-      <html>
-        <head><title>In hóa đơn</title>
-          <style>body{font-family:Arial;padding:30px;color:#000}</style>
-        </head>
-        <body>${invoiceHTML}<script>window.onload=function(){setTimeout(()=>{window.print();window.close()},500)}</script></body>
-      </html>
-    `);
+        <html>
+          <head>
+            <title>In hóa đơn</title>
+            <style>
+              body {
+                font-family: "Arial", sans-serif;
+                padding: 25px 40px;
+                color: #222;
+                background: #fff;
+                line-height: 1.5;
+              }
+              .invoice-box {
+                max-width: 800px;
+                margin: auto;
+                padding: 20px 30px;
+                border: 1px solid #ddd;
+                box-shadow: 0 0 8px rgba(0,0,0,0.15);
+                border-radius: 10px;
+                background: #fff;
+              }
+              .invoice-header {
+                text-align: center;
+                margin-bottom: 20px;
+              }
+              .shop-name {
+                font-size: 24px;
+                font-weight: bold;
+                color: #d62828;
+                text-transform: uppercase;
+              }
+              .invoice-title {
+                font-size: 20px;
+                font-weight: bold;
+                margin-top: 5px;
+                color: #444;
+              }
+              .line {
+                width: 100%;
+                height: 1.5px;
+                background: #000;
+                margin: 15px 0;
+              }
+
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+              }
+              table th, table td {
+                border: 1px solid #999;
+                padding: 8px;
+                font-size: 14px;
+                text-align: left;
+              }
+              table th {
+                background: #f2f2f2;
+                font-weight: bold;
+              }
+
+              .total-box {
+                margin-top: 20px;
+                text-align: right;
+                font-size: 18px;
+                font-weight: bold;
+                color: #d62828;
+              }
+              .thank {
+                text-align: center;
+                margin-top: 25px;
+                font-style: italic;
+                color: #555;
+              }
+            </style>
+          </head>
+
+          <body>
+          
+
+
+              ${invoiceHTML}
+
+              <div class="thank">Cảm ơn quý khách và hẹn gặp lại! ❤️</div>
+            </div>
+
+            <script>
+              window.onload = () => {
+                setTimeout(() => {
+                  window.print();
+                  window.close();
+                }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+
       printWin.document.close();
 
       setTimeout(() => {
@@ -574,3 +721,36 @@ function escapeHtml(s = "") {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+// ====== FORMAT SỐ TIỀN ======
+function formatMoney(num) {
+  return Number(num).toLocaleString("vi-VN");
+}
+
+// Khi nhập vào input → tự format theo tiền Việt Nam
+document.getElementById("laborCost").addEventListener("input", function () {
+  let value = this.value.replace(/\D/g, ""); // chỉ giữ số
+  if (value === "") value = "0";
+  this.value = formatMoney(value);
+});
+
+// ====== NÚT +10 (tăng 10.000đ mỗi lần) ======
+document.getElementById("btnIncrease").addEventListener("click", function () {
+  const input = document.getElementById("laborCost");
+  const totalEl = document.getElementById("totalPrice"); // <== tổng tiền
+
+  // Lấy giá trị hiện tại và bỏ dấu chấm
+  let current = input.value.replace(/\D/g, "") || 0;
+
+  // Cộng 10.000
+  current = Number(current) + 10000;
+
+  // Hiển thị lại tiền công
+  input.value = formatMoney(current);
+
+  // ====== CỘNG VÀO TỔNG TIỀN ======
+  let total = totalAmount.innerText.replace(/\D/g, "") || 0;
+  total = Number(total) + 10000;
+
+  totalAmount.innerText = formatMoney(total) + " đ";
+});
