@@ -21,6 +21,63 @@
     <link href="../css/style.css" rel="stylesheet" />
 
     <style>
+      /* Card upload ảnh Cloudinary */
+      .cloud-card {
+        border: 0;
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        background: #fff;
+      }
+
+      /* Label chính */
+      .cloud-card h5 {
+        font-weight: 600;
+        color: #1e88e5;
+      }
+
+      /* Input file */
+      .cloud-upload-input {
+        padding: 10px;
+        border-radius: 10px;
+      }
+
+      /* Nút upload */
+      .btn-cloud-upload {
+        background: #1e88e5;
+        color: #fff;
+        border-radius: 10px;
+        padding: 10px 18px;
+        transition: 0.2s ease;
+      }
+
+      .btn-cloud-upload:hover {
+        background: #166dc0;
+        transform: translateY(-1px);
+      }
+
+      /* Preview ảnh */
+      #uploadPreview {
+        margin-top: 15px;
+        border-radius: 12px;
+        overflow: hidden;
+        max-width: 260px;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+        display: none;
+      }
+
+      #uploadPreview img {
+        width: 100%;
+        height: auto;
+      }
+
+      /* Link kết quả */
+      #uploadResult a {
+        font-weight: 600;
+        text-decoration: none;
+        color: #1e88e5;
+      }
+
       /* Tối ưu một chút giao diện phần bảng tồn thấp */
       .card.border-0.shadow-sm {
         border-radius: 14px;
@@ -38,19 +95,26 @@
       }
     </style>
   </head>
-<nav class="mobile-bottom-nav d-lg-none">
-  <a href="./index.html"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a>
-  <a href="./home.html"><i class="bi bi-box"></i><span>Kho</span></a>
-  <a href="./stats.html"><i class="bi bi-bar-chart"></i><span>Thống kê</span></a>
-  <a href="./payment.html"><i class="bi bi-cash-coin"></i><span>Thanh toán</span></a>
-  <a href="./settings.html"><i class="bi bi-gear"></i><span>Cài đặt</span></a>
-</nav>
-  <body>
-  
-<!-- ... -->
+  <nav class="mobile-bottom-nav d-lg-none">
+    <a href="./index.html"
+      ><i class="bi bi-speedometer2"></i><span>Dashboard</span></a
+    >
+    <a href="./home.html"><i class="bi bi-box"></i><span>Kho</span></a>
+    <a href="./stats.html"
+      ><i class="bi bi-bar-chart"></i><span>Thống kê</span></a
+    >
+    <a href="./payment.html"
+      ><i class="bi bi-cash-coin"></i><span>Thanh toán</span></a
+    >
+    <a href="./settings.html"><i class="bi bi-gear"></i><span>Cài đặt</span></a>
+  </nav>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cloudinary-core/2.13.0/cloudinary-core-shrinkwrap.min.js"></script>
 
-<!-- Overlay để click ra ngoài là đóng -->
-<div id="sidebarOverlay" class="sidebar-overlay d-lg-none"></div>
+  <body>
+    <!-- ... -->
+
+    <!-- Overlay để click ra ngoài là đóng -->
+    <div id="sidebarOverlay" class="sidebar-overlay d-lg-none"></div>
 
     <!-- ===== SIDEBAR ===== -->
     <aside class="sidebar">
@@ -200,6 +264,7 @@
             </button>
           </div>
         </div>
+        <!-- Upload hình ảnh lên Cloudinary -->
 
         <!-- Bảng hiển thị -->
         <div class="table-responsive shadow-sm rounded-3">
@@ -242,6 +307,24 @@
             </button>
           </div>
         </div>
+      </div>
+      <div class="card p-4 mb-4 border-0 shadow-sm">
+        <h5 class="fw-semibold text-primary mb-3">
+          <i class="bi bi-cloud-upload"></i> Upload ảnh lên Cloudinary
+        </h5>
+
+        <input
+          id="cloudinaryUpload"
+          type="file"
+          class="form-control mb-3"
+          accept="image/*"
+        />
+
+        <button class="btn btn-primary" id="btnUploadCloudinary">
+          <i class="bi bi-cloud-arrow-up"></i> Upload ảnh
+        </button>
+
+        <div id="uploadResult" class="mt-3 fw-semibold text-success"></div>
       </div>
     </main>
 

@@ -156,8 +156,6 @@ async function loadOrders() {
     const res = await fetch("https://motorparts-api.onrender.com/api/orders");
     const data = await res.json();
 
-    console.log("Dữ liệu API:", data);
-
     if (!Array.isArray(data)) {
       console.error("API không trả về mảng!");
       return;
@@ -196,8 +194,70 @@ function renderOrders(data) {
   });
 }
 
-function viewOrderDetail(id) {
-  alert("Xem chi tiết hóa đơn: " + id);
+async function viewOrderDetail(id) {
+  try {
+    const res = await fetch(
+      `https://motorparts-api.onrender.com/api/orders/${id}`
+    );
+    const order = await res.json();
+
+    // ===== FORMAT DANH SÁCH SẢN PHẨM =====
+    const itemsHTML = order.items
+      .map(
+        (item, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${item.name}</td>
+        <td class="text-center">${item.quantity}</td>
+        <td class="text-end">${item.price.toLocaleString("vi-VN")} ₫</td>
+        <td class="text-end">
+          ${(item.price * item.quantity).toLocaleString("vi-VN")} ₫
+        </td>
+      </tr>
+    `
+      )
+      .join("");
+
+    // ===== NỘI DUNG HÓA ĐƠN =====
+    const html = `
+      <h5 class="fw-bold mb-3">HÓA ĐƠN THANH TOÁN</h5>
+
+      <p><strong>Mã hóa đơn:</strong> ${order.invoiceCode}</p>
+      <p><strong>Khách hàng:</strong> ${order.customerName}</p>
+      <p><strong>Số điện thoại:</strong> ${order.phone}</p>
+      <p><strong>Ngày tạo:</strong> ${new Date(order.createdAt).toLocaleString(
+        "vi-VN"
+      )}</p>
+
+      <hr>
+
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Sản phẩm</th>
+            <th class="text-center">SL</th>
+            <th class="text-end">Giá</th>
+            <th class="text-end">Thành tiền</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHTML}
+        </tbody>
+      </table>
+
+      <h5 class="text-end text-danger fw-bold">
+        Tổng cộng: ${order.totalAmount.toLocaleString("vi-VN")} ₫
+      </h5>
+    `;
+
+    document.getElementById("orderDetailContent").innerHTML = html;
+
+    // ===== MỞ MODAL =====
+    new bootstrap.Modal(document.getElementById("orderDetailModal")).show();
+  } catch (err) {
+    console.error("Lỗi xem chi tiết:", err);
+  }
 }
 
 loadOrders();

@@ -309,3 +309,58 @@ function animateCounter(elementId, target, duration) {
     if (e.key === "Escape" && sidebar.classList.contains("open")) close();
   });
 })();
+
+async function uploadToCloudinary(file) {
+  const formData = new FormData();
+
+  // BẮT BUỘC: file trước
+  formData.append("file", file);
+
+  // BẮT BUỘC: preset phải là unsigned
+  formData.append("upload_preset", "motorparts");
+
+  // Thư mục Cloudinary
+  formData.append("folder", "motorparts");
+
+  // Ép JPG
+  formData.append("format", "jpg");
+
+  try {
+    const res = await fetch(
+      "https://api.cloudinary.com/v1_1/dzmtdhzoc/image/upload",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const data = await res.json();
+
+    if (data.error) {
+      console.error("Cloudinary Error:", data.error.message);
+      alert("Lỗi Cloudinary: " + data.error.message);
+      return null;
+    }
+
+    return data.secure_url;
+  } catch (e) {
+    console.error("Upload Failed:", e);
+    return null;
+  }
+}
+
+document
+  .getElementById("btnUploadCloudinary")
+  .addEventListener("click", async () => {
+    const file = document.getElementById("cloudinaryUpload").files[0];
+
+    if (!file) {
+      alert("Vui lòng chọn ảnh!");
+      return;
+    }
+
+    const imageURL = await uploadImageToCloudinary(file);
+    document.getElementById(
+      "uploadResult"
+    ).innerHTML = `Upload thành công!<br><a href="${imageURL}" target="_blank">${imageURL}</a>`;
+  });
