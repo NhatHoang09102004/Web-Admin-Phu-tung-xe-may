@@ -5,7 +5,7 @@
 (() => {
   // Config: lấy API base priority: window.__API_BASE__ -> localStorage.settings.apiUrl -> '/api'
   const cfg = JSON.parse(localStorage.getItem("settings") || "{}");
-  const API = window.__API_BASE__ || cfg.apiUrl || "/api";
+  const API = "https://motorparts-api.onrender.com/api";
 
   // DOM refs
   const lastUpdatedEl = document.getElementById("lastUpdated");
