@@ -105,8 +105,8 @@
   // Load overview stats
   async function loadDashboard() {
     try {
-      const res = await fetch(`${API}/stats/revenue-monthly
-`);
+      const res = await fetch(`${API}/stats/revenue-monthly`);
+
       if (!res.ok) throw new Error("Không lấy được số liệu tổng quan");
       const data = await res.json();
 
@@ -114,7 +114,8 @@
         "vi-VN"
       );
       monthlyRevenueEl.textContent = formatMoney(data.monthlyRevenue ?? 0);
-      topBrandEl.textContent = data.topBrand || "Honda";
+      topBrandEl.textContent = data.popularBrand?.name || "—";
+
       newCustomersEl.textContent = data.newCustomers ?? 0;
       lastUpdatedEl.textContent = data.updatedAt
         ? new Date(data.updatedAt).toLocaleString("vi-VN")
