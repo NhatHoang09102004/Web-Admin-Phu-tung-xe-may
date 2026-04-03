@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
@@ -158,6 +158,28 @@
                 <i class="bi bi-receipt-cutoff me-2"></i>Danh sách đơn hàng
               </h5>
 
+              <div class="filter-box d-flex align-items-center gap-2 mb-3">
+                <div class="date-picker-wrapper">
+                  <i class="bi bi-calendar3 date-icon"></i>
+                  <input type="month" id="filterMonth" class="date-input" />
+                </div>
+
+                <button
+                  class="btn btn-primary filter-btn"
+                  onclick="filterByMonth()"
+                >
+                  <i class="bi bi-funnel-fill me-1"></i> Lọc
+                </button>
+
+                <button
+                  class="btn btn-secondary reset-btn"
+                  onclick="resetFilterMonth()"
+                >
+                  <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                </button>
+              </div>
+
+              <h5 id="totalByMonth" class="text-danger fw-bold mt-3"></h5>
               <div class="table-responsive mt-3">
                 <table
                   class="table table-bordered table-hover align-middle table-orders"
@@ -176,7 +198,26 @@
                   <tbody id="orderTableBody">
                     <!-- JS load -->
                   </tbody>
+                  <div class="d-flex gap-2 my-3">
+                    <input type="date" id="filterDate" class="form-control" />
+                    <button
+                      class="btn btn-primary"
+                      onclick="filterBySingleDate()"
+                    >
+                      Lọc
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetFilter()">
+                      Reset
+                    </button>
+                  </div>
+                  <div
+                    class="d-flex justify-content-between align-items-center mt-3"
+                  ></div>
                 </table>
+                <div
+                  id="pagination"
+                  class="mt-3 d-flex justify-content-center"
+                ></div>
               </div>
             </div>
           </div>
@@ -235,7 +276,7 @@
         <p><strong>Khách hàng:</strong> ${order.customerName}</p>
         <p><strong>SĐT:</strong> ${order.phone}</p>
         <p><strong>Ngày tạo:</strong> ${new Date(
-          order.createdAt
+          order.createdAt,
         ).toLocaleString("vi-VN")}</p>
 
         <h6 class="mt-3">Danh sách sản phẩm</h6>
@@ -254,10 +295,11 @@
               <td>${item.quantity}</td>
               <td>${item.price.toLocaleString("vi-VN")} ₫</td>
               <td>${(item.price * item.quantity).toLocaleString("vi-VN")} ₫</td>
-            </tr>`
+            </tr>`,
             )
             .join("")}
         </table>
+        
 
         <h5 class="text-end text-primary">
           Tổng cộng: ${order.total.toLocaleString("vi-VN")} ₫
@@ -268,7 +310,7 @@
 
           // Mở modal
           const modal = new bootstrap.Modal(
-            document.getElementById("orderDetailModal")
+            document.getElementById("orderDetailModal"),
           );
           modal.show();
         } catch (error) {
@@ -338,7 +380,7 @@
       async function loadRevenueChart() {
         try {
           const res = await fetch(
-            "https://motorparts-api.onrender.com/api/stats/revenue-monthly"
+            "https://motorparts-api.onrender.com/api/stats/revenue-monthly",
           );
           const data = await res.json();
 

@@ -36,6 +36,13 @@ new Chart(ctxCategory, {
   },
 });
 
+// phân trang
+let currentPage = 1;
+const ITEMS_PER_PAGE = 10;
+
+let allOrders = []; // dữ liệu gốc
+let filteredOrders = []; // dữ liệu sau khi lọc
+
 // ===== Biểu đồ đường: Doanh thu theo tháng =====
 const ctxRevenue = document.getElementById("revenueChart");
 new Chart(ctxRevenue, {
@@ -105,7 +112,7 @@ new Chart(ctxRevenue, {
 async function loadRevenueChart() {
   try {
     const res = await fetch(
-      "https://motorparts-api.onrender.com/api/stats/revenue-monthly"
+      "https://motorparts-api.onrender.com/api/stats/revenue-monthly",
     );
     const data = await res.json();
 
@@ -154,17 +161,159 @@ async function loadRevenueChart() {
 async function loadOrders() {
   try {
     const res = await fetch("https://motorparts-api.onrender.com/api/orders");
-    const data = await res.json();
+    allOrders = await res.json(); // ✔ GÁN DỮ LIỆU VÀO allOrders
+    filteredOrders = allOrders; // ✔ Mặc định hiển thị tất cả
 
-    if (!Array.isArray(data)) {
-      console.error("API không trả về mảng!");
-      return;
-    }
-
-    renderOrders(data);
-  } catch (error) {
-    console.error("Lỗi tải đơn hàng:", error);
+    renderTable();
+    renderPagination();
+  } catch (err) {
+    console.error("Lỗi load:", err);
   }
+}
+
+function renderFilteredTable() {
+  const start = (currentPage - 1) * ITEMS_PER_PAGE;
+  const end = start + ITEMS_PER_PAGE;
+
+  const pageItems = filteredOrders.slice(start, end);
+
+  if (pageItems.length === 0) {
+    document.getElementById("orderTableBody").innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-danger fw-bold py-3">
+          Không có dữ liệu ngày này 🥺
+        </td>
+      </tr>`;
+    return;
+  }
+
+  const html = pageItems
+    .map(
+      (order) => `
+      <tr>
+        <td>${order.invoiceCode}</td>
+        <td>${order.customerName}</td>
+        <td>${order.phone}</td>
+        <td>${order.totalAmount.toLocaleString("vi-VN")} ₫</td>
+        <td>${new Date(order.createdAt).toLocaleString("vi-VN")}</td>
+        <td>
+          <button class="btn btn-primary btn-sm"
+            onclick="viewOrderDetail('${order._id}')">
+            Xem
+          </button>
+        </td>
+      </tr>`,
+    )
+    .join("");
+
+  document.getElementById("orderTableBody").innerHTML = html;
+}
+
+function renderPagination(totalPages) {
+  let html = "";
+
+  html += `
+    <button class="btn btn-sm btn-outline-primary me-1"
+            onclick="changePage(${currentPage - 1})"
+            ${currentPage === 1 ? "disabled" : ""}>
+      ‹ Trước
+    </button>
+  `;
+
+  for (let i = 1; i <= totalPages; i++) {
+    html += `
+      <button class="btn btn-sm ${i === currentPage ? "btn-primary" : "btn-outline-primary"} me-1"
+              onclick="changePage(${i})">
+        ${i}
+      </button>`;
+  }
+
+  html += `
+    <button class="btn btn-sm btn-outline-primary ms-1"
+            onclick="changePage(${currentPage + 1})"
+            ${currentPage === totalPages ? "disabled" : ""}>
+      Sau ›
+    </button>
+  `;
+
+  document.getElementById("pagination").innerHTML = html;
+}
+
+function changePage(p) {
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
+  renderTable();
+}
+
+function changePage(page) {
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
+  if (page < 1 || page > totalPages) return;
+
+  currentPage = page;
+  renderFilteredTable();
+  renderPagination();
+}
+// tháng
+function filterByMonth() {
+  const monthValue = document.getElementById("filterMonth").value;
+
+  // Nếu chưa chọn tháng → hiển thị toàn bộ
+  if (!monthValue) {
+    filteredOrders = allOrders;
+    currentPage = 1;
+    renderTable();
+    document.getElementById("totalByMonth").innerHTML = "";
+    return;
+  }
+
+  // Tách năm – tháng
+  const [year, month] = monthValue.split("-").map(Number);
+
+  filteredOrders = allOrders.filter((order) => {
+    const d = new Date(order.createdAt);
+    return d.getFullYear() === year && d.getMonth() + 1 === month;
+  });
+
+  // Tính tổng tháng
+  const total = filteredOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+
+  // Hiện tổng tiền
+  document.getElementById("totalByMonth").innerHTML =
+    `Tổng doanh thu tháng ${month}/${year}: <span class="text-primary">${total.toLocaleString("vi-VN")} ₫</span>`;
+
+  currentPage = 1;
+  renderTable();
+}
+function resetFilterMonth() {
+  document.getElementById("filterMonth").value = "";
+  filteredOrders = allOrders;
+  currentPage = 1;
+  renderTable();
+  document.getElementById("totalByMonth").innerHTML = "";
+}
+//ngày
+function filterBySingleDate() {
+  const date = document.getElementById("filterDate").value;
+
+  // ⛔ Nếu chưa chọn → hiện toàn bộ
+  if (!date) {
+    filteredOrders = allOrders;
+    currentPage = 1;
+    return renderTable();
+  }
+
+  const selected = new Date(date);
+  selected.setHours(0, 0, 0, 0);
+
+  filteredOrders = allOrders.filter((o) => {
+    const d = new Date(o.createdAt);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime() === selected.getTime();
+  });
+
+  currentPage = 1;
+  renderTable();
 }
 
 function renderOrders(data) {
@@ -194,10 +343,17 @@ function renderOrders(data) {
   });
 }
 
+function resetFilter() {
+  document.getElementById("filterDate").value = "";
+  filteredOrders = allOrders;
+  currentPage = 1;
+  renderTable();
+}
+
 async function viewOrderDetail(id) {
   try {
     const res = await fetch(
-      `https://motorparts-api.onrender.com/api/orders/${id}`
+      `https://motorparts-api.onrender.com/api/orders/${id}`,
     );
     const order = await res.json();
 
@@ -214,7 +370,7 @@ async function viewOrderDetail(id) {
           ${(item.price * item.quantity).toLocaleString("vi-VN")} ₫
         </td>
       </tr>
-    `
+    `,
       )
       .join("");
 
@@ -226,7 +382,7 @@ async function viewOrderDetail(id) {
       <p><strong>Khách hàng:</strong> ${order.customerName}</p>
       <p><strong>Số điện thoại:</strong> ${order.phone}</p>
       <p><strong>Ngày tạo:</strong> ${new Date(order.createdAt).toLocaleString(
-        "vi-VN"
+        "vi-VN",
       )}</p>
 
       <hr>
@@ -261,3 +417,44 @@ async function viewOrderDetail(id) {
 }
 
 loadOrders();
+
+function renderTable() {
+  const tbody = document.getElementById("orderTableBody");
+
+  if (filteredOrders.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="text-center text-danger fw-bold py-3">
+          Không có dữ liệu ngày này 🥺
+        </td>
+      </tr>`;
+    document.getElementById("pagination").innerHTML = "";
+    return;
+  }
+
+  const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
+  const start = (currentPage - 1) * ITEMS_PER_PAGE;
+  const pageItems = filteredOrders.slice(start, start + ITEMS_PER_PAGE);
+
+  tbody.innerHTML = pageItems
+    .map(
+      (order) => `
+      <tr>
+        <td>${order.invoiceCode}</td>
+        <td>${order.customerName}</td>
+        <td>${order.phone}</td>
+        <td>${order.totalAmount.toLocaleString("vi-VN")} ₫</td>
+        <td>${new Date(order.createdAt).toLocaleString("vi-VN")}</td>
+        <td>
+          <button class="btn btn-primary btn-sm"
+            onclick="viewOrderDetail('${order._id}')">
+            Xem
+          </button>
+        </td>
+      </tr>
+    `,
+    )
+    .join("");
+
+  renderPagination(totalPages);
+}

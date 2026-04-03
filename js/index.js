@@ -33,10 +33,10 @@
       type === "success"
         ? "bg-success"
         : type === "warning"
-        ? "bg-warning text-dark"
-        : type === "danger"
-        ? "bg-danger"
-        : "bg-primary"
+          ? "bg-warning text-dark"
+          : type === "danger"
+            ? "bg-danger"
+            : "bg-primary"
     } animate__animated animate__fadeInDown`;
     el.innerHTML = `<div class="toast-body fw-semibold">${msg}</div>`;
     container.appendChild(el);
@@ -111,12 +111,23 @@
       const data = await res.json();
 
       totalProductsEl.textContent = (data.totalProducts ?? 0).toLocaleString(
-        "vi-VN"
+        "vi-VN",
       );
       monthlyRevenueEl.textContent = formatMoney(data.monthlyRevenue ?? 0);
       topBrandEl.textContent = data.popularBrand?.name || "—";
 
-      newCustomersEl.textContent = data.newCustomers ?? 0;
+      // Lấy tháng hiện tại
+      const currentMonth = new Date().getMonth() + 1;
+
+      // Lấy doanh thu theo tháng từ API series
+      let revenue = 6800000;
+      if (Array.isArray(data.monthlyRevenueSeries)) {
+        revenue = data.monthlyRevenueSeries[currentMonth - 1] || 0;
+      }
+
+      // Gán vào UI
+      monthlyRevenueEl.textContent = formatMoney(revenue);
+
       lastUpdatedEl.textContent = data.updatedAt
         ? new Date(data.updatedAt).toLocaleString("vi-VN")
         : new Date().toLocaleString("vi-VN");
@@ -124,7 +135,7 @@
       if (Array.isArray(data.monthlyRevenueSeries) && overviewChart) {
         const arr = data.monthlyRevenueSeries.slice(0, 12);
         overviewChart.data.datasets[0].data = arr.concat(
-          Array(Math.max(0, 12 - arr.length)).fill(0)
+          Array(Math.max(0, 12 - arr.length)).fill(0),
         );
         overviewChart.update();
       }
@@ -173,7 +184,7 @@
           <td>${p.model || ""}</td>
           <td>${p.category || ""}</td>
           <td class="text-danger fw-bold">${p.quantity ?? 0}</td>
-        </tr>`
+        </tr>`,
         )
         .join("");
     } catch (err) {
@@ -201,7 +212,7 @@
         "createdAt",
       ];
       const rows = products.map((p) =>
-        headers.map((h) => JSON.stringify(p[h] ?? "")).join(",")
+        headers.map((h) => JSON.stringify(p[h] ?? "")).join(","),
       );
       const csv = [headers.join(","), ...rows].join("\n");
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -245,7 +256,7 @@
     const current = Number(localStorage.getItem("lowStockThreshold") || 5);
     const v = prompt(
       "Đặt ngưỡng tồn thấp (số nguyên, ví dụ 5):",
-      String(current)
+      String(current),
     );
     if (v === null) return;
     const n = parseInt(v, 10);

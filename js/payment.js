@@ -12,10 +12,10 @@ function showToast(msg, type = "info") {
     type === "success"
       ? "bg-success"
       : type === "warning"
-      ? "bg-warning text-dark"
-      : type === "danger"
-      ? "bg-danger"
-      : "bg-primary"
+        ? "bg-warning text-dark"
+        : type === "danger"
+          ? "bg-danger"
+          : "bg-primary"
   } animate__animated animate__fadeInDown`;
   el.innerHTML = `<div class="toast-body fw-semibold">${msg}</div>`;
   container.appendChild(el);
@@ -87,7 +87,7 @@ async function loadProducts() {
       <div>
         <div class="fw-semibold">${escapeHtml(p.name || "")}</div>
         <small class="text-muted d-block">${escapeHtml(
-          p.vehicle || ""
+          p.vehicle || "",
         )} • ${escapeHtml(p.category || "")}</small>
         <small class="text-muted d-block">
           📦 Tồn kho: 
@@ -105,7 +105,7 @@ async function loadProducts() {
     </div>
     <div class="text-end">
       <div class="fw-bold text-primary">${Number(p.price || 0).toLocaleString(
-        "vi-VN"
+        "vi-VN",
       )} ₫</div>
       <button class="btn btn-sm btn-outline-primary mt-2" ${
         p.status === "Hết hàng" || qty <= 0 ? "disabled" : ""
@@ -171,7 +171,7 @@ document
     el.addEventListener("change", () => {
       currentPage = 1;
       loadProducts();
-    })
+    }),
   );
 
 // ======= GIỎ HÀNG =======
@@ -291,7 +291,7 @@ function renderCart(items, total) {
         <div>
           <div class="fw-semibold">${escapeHtml(item.name || "")}</div>
           <small class="text-muted">${Number(item.price || 0).toLocaleString(
-            "vi-VN"
+            "vi-VN",
           )} ₫</small>
         </div>
       </div>
@@ -382,7 +382,7 @@ function renderInvoice(order) {
 
   // QR Thanh toán
   const qrUrl = `https://img.vietqr.io/image/${bankCode}-${accountNumber}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(
-    note
+    note,
   )}&accountName=${encodeURIComponent(accountName)}`;
 
   // Render danh sách sản phẩm
@@ -390,23 +390,23 @@ function renderInvoice(order) {
     .map(
       (i, idx) => `
       <tr>
-        <td class="text-center" style="padding:6px;">${idx + 1}</td>
-        <td style="padding:6px;">${escapeHtml(i.name)}</td>
-        <td class="text-center" style="padding:6px;">${i.quantity}</td>
-        <td class="text-end" style="padding:6px;">${Number(
-          i.price
-        ).toLocaleString("vi-VN")} ₫</td>
-        <td class="text-end" style="padding:6px;">${(
-          i.quantity * i.price
-        ).toLocaleString("vi-VN")} ₫</td>
-      </tr>`
+        <td class="col-index bordered">${idx + 1}</td>
+<td class="col-name td-left bordered">${escapeHtml(i.name)}</td>
+        <td class="col-qty bordered">${i.quantity}</td>
+        <td class="col-price bordered">${Number(i.price).toLocaleString(
+          "vi-VN",
+        )}</td>
+        <td class="col-total bordered">${(i.quantity * i.price).toLocaleString(
+          "vi-VN",
+        )}</td>
+      </tr>`,
     )
     .join("");
 
   // Tổng tiền hàng
   const productTotal = order.items.reduce(
     (sum, i) => sum + i.price * i.quantity,
-    0
+    0,
   );
 
   // Tiền công
@@ -423,30 +423,33 @@ function renderInvoice(order) {
         <hr style="border:none; border-top:2px solid #000; margin:10px 0;">
       </div>
 
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-        <div><p style="margin:2px 0;"><b>Mã hóa đơn:</b> ${order.id}</p></div>
-        <div style="text-align:right;">
-          <p style="margin:2px 0;"><b>Ngày lập:</b> ${new Date(
-            order.createdAt
-          ).toLocaleDateString("vi-VN")}</p>
-          <p style="margin:2px 0;"><b>Giờ:</b> ${new Date(
-            order.createdAt
-          ).toLocaleTimeString("vi-VN")}</p>
-        </div>
+  <div class="info-wrap">
+  <div class="left-info">
+    <p><b>Mã HĐ:</b> ${order.id}</p>
+  </div>
+
+  <div class="right-info">
+    <p><b>Thời gian: ${new Date(order.createdAt).toLocaleDateString("vi-VN")} - 
+      ${new Date(order.createdAt).toLocaleTimeString("vi-VN")}</b></p>
+  </div>
+</div>
       </div>
 
-      <table style="width:100%; border-collapse:collapse; margin-top:5px;">
-        <thead>
-          <tr style="background:#f3f3f3; text-align:center;">
-            <th style="border:1px solid #000; padding:6px;">#</th>
-            <th style="border:1px solid #000; padding:6px;">Tên sản phẩm</th>
-            <th style="border:1px solid #000; padding:6px;">SL</th>
-            <th style="border:1px solid #000; padding:6px;">Đơn giá</th>
-            <th style="border:1px solid #000; padding:6px;">Thành tiền</th>
-          </tr>
-        </thead>
-        <tbody>${itemsHTML}</tbody>
-      </table>
+  <table class="invoice-table">
+  <thead>
+    <tr>
+      <th class="col-index bordered">#</th>
+<th class="col-name th-center bordered">Tên SP</th>
+      <th class="col-qty bordered">SL</th>
+      <th class="col-price bordered">Đơn giá</th>
+      <th class="col-total bordered">Thành tiền</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    ${itemsHTML}
+  </tbody>
+</table>
 
       <div style="margin-top:15px; font-size:13px;">
         <div style="display:flex; justify-content:space-between;">
@@ -507,101 +510,174 @@ document
       const printWin = window.open("", "_blank", "width=900,height=700");
 
       printWin.document.write(`
-        <html>
-          <head>
-            <title>In hóa đơn</title>
-            <style>
-              body {
-                font-family: "Arial", sans-serif;
-                padding: 25px 40px;
-                color: #222;
-                background: #fff;
-                line-height: 1.5;
-              }
-              .invoice-box {
-                max-width: 800px;
-                margin: auto;
-                padding: 20px 30px;
-                border: 1px solid #ddd;
-                box-shadow: 0 0 8px rgba(0,0,0,0.15);
-                border-radius: 10px;
-                background: #fff;
-              }
-              .invoice-header {
-                text-align: center;
-                margin-bottom: 20px;
-              }
-              .shop-name {
-                font-size: 24px;
-                font-weight: bold;
-                color: #d62828;
-                text-transform: uppercase;
-              }
-              .invoice-title {
-                font-size: 20px;
-                font-weight: bold;
-                margin-top: 5px;
-                color: #444;
-              }
-              .line {
-                width: 100%;
-                height: 1.5px;
-                background: #000;
-                margin: 15px 0;
-              }
+  <html>
+    <head>
+      <title>In hóa đơn</title>
 
-              table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 10px;
-              }
-              table th, table td {
-                border: 1px solid #999;
-                padding: 8px;
-                font-size: 14px;
-                text-align: left;
-              }
-              table th {
-                background: #f2f2f2;
-                font-weight: bold;
-              }
+<style>
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
 
-              .total-box {
-                margin-top: 20px;
-                text-align: right;
-                font-size: 18px;
-                font-weight: bold;
-                color: #d62828;
-              }
-              .thank {
-                text-align: center;
-                margin-top: 25px;
-                font-style: italic;
-                color: #555;
-              }
-            </style>
-          </head>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    width: 268px;
+    max-width: 268px;
+    overflow: hidden;
+  }
 
-          <body>
-          
+  .invoice-box {
+    padding: 8px 6px;
+    width: 100%;
+  }
 
+  .header {
+    text-align: center;
+    margin-bottom: 10px;
+  }
 
-              ${invoiceHTML}
+  .shop-name {
+    font-size: 17px;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
 
-              <div class="thank">Cảm ơn quý khách và hẹn gặp lại! ❤️</div>
-            </div>
+  .sub-info {
+    font-size: 11px;
+    margin-top: 3px;
+  }
 
-            <script>
-              window.onload = () => {
-                setTimeout(() => {
-                  window.print();
-                  window.close();
-                }, 500);
-              };
-            </script>
-          </body>
-        </html>
-      `);
+  .info-line,
+  .dual-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+
+  .line {
+    border-top: 1px dashed #000;
+    margin: 8px 0;
+  }
+
+  /* =============================
+      BẢNG SẢN PHẨM RÕ NÉT
+  ============================== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 12px;
+    border: 1px solid #000; /* khung ngoài nét liền */
+  }
+
+  thead th {
+      text-align: center;       /* Canh giữa */
+    padding: 3px 0;
+    text-align: left;
+    border: 1px solid #000;      /* tất cả ô đều nét liền */
+  }
+
+  tbody td {
+        text-align: center;       /* Canh giữa */
+
+    padding: 3px 2px;
+    vertical-align: top;
+    border: 1px solid #000;      /* tất cả ô đều nét liền */
+    word-wrap: break-word;
+  }
+
+  thead th:last-child,
+  tbody td:last-child {
+    border-right: none;
+  }
+
+  /* TỶ LỆ CỘT */
+  .col-index { width: 20px; text-align: center; }
+  .col-name { width: 100px; text-align: left !important; }
+  .col-qty { width: 20px; text-align: center; }
+  .col-price { width: 60px; text-align: center; }
+  .col-total { width: 60px; text-align: center; }
+
+  /* =============================
+        TỔNG TIỀN
+  ============================== */
+  .sum-box {
+    margin-top: 10px;
+    font-size: 13px;
+  }
+
+  .sum-line {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-weight: bold;
+  }
+
+  /* QR */
+  .qr-wrap {
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .qr-wrap img {
+    width: 150px;
+  }
+
+  .thank {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 11px;
+    font-style: italic;
+  }
+    // odor
+.info-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  font-size: 12px;
+}
+
+.left-info {
+  width: 45%;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.right-info {
+  width: 55%;
+  text-align: right;
+  white-space: nowrap;  /* Không cho xuống dòng */
+}
+
+.info-wrap p {
+  margin: 2px 0;
+}
+</style>
+
+    </head>
+    <body>
+
+      ${invoiceHTML}
+
+      <div class="thank">Cảm ơn quý khách và hẹn gặp lại! ❤️</div>
+
+      <script>
+        window.onload = () => {
+          setTimeout(() => {
+            window.print();
+            window.close();
+          }, 400);
+        };
+      </script>
+
+    </body>
+  </html>
+`);
 
       printWin.document.close();
 
@@ -737,20 +813,13 @@ document.getElementById("laborCost").addEventListener("input", function () {
 // ====== NÚT +10 (tăng 10.000đ mỗi lần) ======
 document.getElementById("btnIncrease").addEventListener("click", function () {
   const input = document.getElementById("laborCost");
-  const totalEl = document.getElementById("totalPrice"); // <== tổng tiền
 
   // Lấy giá trị hiện tại và bỏ dấu chấm
-  let current = input.value.replace(/\D/g, "") || 0;
+  let current = input.value.replace(/\D/g, "");
 
   // Cộng 10.000
   current = Number(current) + 10000;
 
-  // Hiển thị lại tiền công
+  // Gán lại với format đẹp
   input.value = formatMoney(current);
-
-  // ====== CỘNG VÀO TỔNG TIỀN ======
-  let total = totalAmount.innerText.replace(/\D/g, "") || 0;
-  total = Number(total) + 10000;
-
-  totalAmount.innerText = formatMoney(total) + " đ";
 });
